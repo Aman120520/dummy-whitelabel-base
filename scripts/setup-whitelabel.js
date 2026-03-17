@@ -35,7 +35,9 @@ async function run() {
 
     // 3. Mutate app.json
     appJson.expo.name = configData.appName;
-    appJson.expo.slug = configData.slug;
+
+    // ❌ REMOVED: appJson.expo.slug = configData.slug; 
+    // We must keep the original slug so EAS recognizes the projectId!
 
     // Ensure android and ios objects exist
     if (!appJson.expo.android) appJson.expo.android = {};
@@ -48,7 +50,7 @@ async function run() {
     appJson.expo.owner = "amanvagadiya12personal";
 
     fs.writeFileSync(APP_JSON_PATH, JSON.stringify(appJson, null, 2));
-    console.log(`✅ Updated app.json with slug: ${configData.slug}`);
+    console.log(`✅ Updated app.json with White-label identities`);
 
     // 4. Download Assets
     // Make sure assets folder exists
