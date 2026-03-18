@@ -30,15 +30,15 @@ jobs:
       - name: Expo Prebuild
         run: npx expo prebuild --platform android --clean
 
-      # Bypass strict linting and build a Debug APK (doesn't require a release keystore)
+      # Bypass strict linting and build an UNSIGNED Release APK
       - name: Build APK
         run: |
           cd android
-          ./gradlew assembleDebug -x lint --no-daemon
+          ./gradlew assembleRelease -x lint --no-daemon
 
-      # Upload the generated Debug APK
+      # Upload the generated Unsigned Release APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release-unsigned
+          path: android/app/build/outputs/apk/release/*.apk
