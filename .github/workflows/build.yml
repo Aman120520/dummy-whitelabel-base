@@ -1,6 +1,11 @@
 name: Generate Fast APK
 on:
   workflow_dispatch:
+    inputs:
+      clientId:
+        description: 'Organization ID / Client ID'
+        required: true
+        type: string
 
 jobs:
   build:
