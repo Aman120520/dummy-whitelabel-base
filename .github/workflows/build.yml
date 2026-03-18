@@ -30,13 +30,14 @@ jobs:
       - name: Expo Prebuild
         run: npx expo prebuild --platform android --clean
 
-      # Bypass strict linting and build an UNSIGNED Release APK
       - name: Build APK
+        # We increase memory limits here to prevent the GitHub runner from crashing
         run: |
           cd android
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          export _JAVA_OPTIONS="-Xmx4096m"
           ./gradlew assembleRelease -x lint --no-daemon
 
-      # Upload the generated Unsigned Release APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
