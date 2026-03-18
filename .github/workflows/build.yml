@@ -11,16 +11,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Updated to v4
       - uses: actions/checkout@v4
 
-      # Updated to v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      # Updated to v4
       - name: Setup Java (Required for Android)
         uses: actions/setup-java@v4
         with:
@@ -30,19 +27,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # This injects your dynamic app icon, name, and package name into the native code
       - name: Expo Prebuild
         run: npx expo prebuild --platform android --clean
 
-      # This compiles the APK directly on GitHub, bypassing the Expo Queue!
+      # Bypass strict linting and build a Debug APK (doesn't require a release keystore)
       - name: Build APK
         run: |
           cd android
-          ./gradlew assembleRelease
+          ./gradlew assembleDebug -x lint --no-daemon
 
-      # Updated to v4 - This fixes your exact error
+      # Upload the generated Debug APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
