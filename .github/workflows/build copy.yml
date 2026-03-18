@@ -1,0 +1,37 @@
+name: Generate Dummy App
+
+on:
+  workflow_dispatch:
+    inputs:
+      clientId:
+        description: 'Client ID from Configurator'
+        required: false
+
+jobs:
+  build-android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4 # Upgraded to v4 to fix deprecation warnings
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4 # Upgraded to v4 to fix deprecation warnings
+        with:
+          node-version: 18.x
+
+      - name: 🛠️ Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm # Forces the action to use npm instead of yarn
+          eas-cache: false # Disables the buggy cache that threw the 400 error
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🧬 Run Mutator Script
+        run: node scripts/setup-whitelabel.js
+
+      - name: 🏗️ Build APK with EAS
+        run: eas build --platform android --profile test-apk --non-interactive

@@ -1,37 +1,40 @@
-name: Generate Dummy App
-
+name: Generate Fast APK
 on:
   workflow_dispatch:
-    inputs:
-      clientId:
-        description: 'Client ID from Configurator'
-        required: false
 
 jobs:
-  build-android-apk:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout Code
-        uses: actions/checkout@v4 # Upgraded to v4 to fix deprecation warnings
+      - uses: actions/checkout@v3
 
-      - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4 # Upgraded to v4 to fix deprecation warnings
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: 18.x
+          node-version: '18'
 
-      - name: 🛠️ Setup Expo
-        uses: expo/expo-github-action@v8
+      - name: Setup Java (Required for Android)
+        uses: actions/setup-java@v3
         with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-          packager: npm # Forces the action to use npm instead of yarn
-          eas-cache: false # Disables the buggy cache that threw the 400 error
+          distribution: 'zulu'
+          java-version: '17'
 
-      - name: 📦 Install Dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: 🧬 Run Mutator Script
-        run: node scripts/setup-whitelabel.js
+      # This injects your dynamic app icon, name, and package name into the native code
+      - name: Expo Prebuild
+        run: npx expo prebuild --platform android --clean
 
-      - name: 🏗️ Build APK with EAS
-        run: eas build --platform android --profile test-apk --non-interactive
+      # This compiles the APK directly on GitHub, bypassing the Expo Queue!
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
+
+      # Upload the finished APK so you can download it from the GitHub Actions dashboard
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release
+          path: android/app/build/outputs/apk/release/app-release.apk
