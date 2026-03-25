@@ -100,9 +100,11 @@ jobs:
       - name: Build & Upload to TestFlight
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          # We MUST pass the API Keys here so EAS has permission to auto-create the App Record in App Store Connect
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          # FIX: The exact variable name must be _ID, not _IDENTIFIER!
+          EXPO_APPLE_APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
         run: |
+          # Strip any accidental newlines or spaces from the Base64 key before passing to Expo
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | tr -d '\n\r ')
+          
           eas build --platform ios --profile production --non-interactive --auto-submit
