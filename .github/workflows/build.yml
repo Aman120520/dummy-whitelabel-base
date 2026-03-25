@@ -56,9 +56,9 @@ jobs:
           name: app-release-unsigned
           path: android/app/build/outputs/apk/release/*.apk
 
-  # --- 🍏 iOS TESTFLIGHT BUILD (Takes ~15-20 minutes) ---
+  # --- 🍏 iOS TESTFLIGHT BUILD (Handled via Expo Cloud) ---
   build-ios:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest # Using Ubuntu here because Expo's Cloud Mac servers will do the actual compiling
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -80,13 +80,8 @@ jobs:
             fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
           "
 
-      # We decode your Apple Key so Fastlane/EAS can use it
-      - name: Setup Apple API Key
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys/
-          echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
-
-      # The magic command: Builds locally on the GitHub Mac runner, then uploads to TestFlight!
+      # This magic command sends the code to Expo. Expo dynamically creates your Apple Certificates
+      # for the new Bundle ID, compiles the app, and pushes it directly to TestFlight!
       - name: Build & Upload to TestFlight
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -94,5 +89,4 @@ jobs:
           EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
         run: |
-          eas build --platform ios --profile production --local --non-interactive
-          eas submit --platform ios --latest --non-interactive
+          eas build --platform ios --profile production --non-interactive --auto-submit
