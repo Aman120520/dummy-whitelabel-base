@@ -102,4 +102,4 @@ jobs:
           # ONLY pass the Expo Token. Expo will use the App Store API Key you uploaded to its dashboard!
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          eas build --platform ios --profile production --non-interactive --auto-submit
+          eas build --platform ios --profile production --auto-submit
