@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wesence.dummywhitelabelbase",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -48,9 +52,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "d6c28cda-73b2-47b4-8ac4-81fef0b26e13"
+        "projectId": "952733e3-51a5-40b4-8554-eaac3a5a6390"
       }
     },
-    "owner": "amanvagadiya12personal"
+    "owner": "wesencedev"
   }
 }
