@@ -84,50 +84,53 @@ jobs:
       - name: Install Fastlane
         run: sudo gem install fastlane
 
+      - name: Decode and Save App Store Connect API Key
+        env:
+          ASC_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            let key = process.env.ASC_KEY_BASE64.trim();
+            // Auto-detect if it's base64 or already raw text, and decode safely
+            if (!key.includes('BEGIN PRIVATE KEY')) {
+              key = Buffer.from(key, 'base64').toString('utf8');
+            }
+            // Save directly to the absolute workspace path
+            fs.writeFileSync('${{ github.workspace }}/AuthKey.p8', key);
+            console.log('✅ API Key successfully decoded and saved to absolute path.');
+          "
+
       - name: 100% Auto-Create App Record in App Store Connect
         env:
           FASTLANE_OPT_OUT_USAGE: "1"
           FASTLANE_SKIP_UPDATE_CHECK: "1"
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          ASC_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APP_BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APP_NAME: ${{ github.event.inputs.appName }}
         run: |
           mkdir -p fastlane
           
-          # Use cat with EOF to strictly prevent bash variable interpretation issues
           cat << 'EOF' > fastlane/Fastfile
           default_platform(:ios)
           
           lane :create_app_shell do
-            require 'base64'
-            
-            raw_secret = ENV['ASC_KEY_BASE64'].to_s.strip
-            
-            # Auto-detect if the secret in GitHub is raw text or base64 encoded
-            if raw_secret.include?('BEGIN PRIVATE KEY')
-              key_data = raw_secret
-            else
-              key_data = Base64.decode64(raw_secret)
-            end
-            
-            # Pass the decoded key directly into memory instead of writing to disk!
+            # 1. Load the API Key from the absolute path we just created
             app_store_connect_api_key(
               key_id: ENV['ASC_KEY_ID'],
               issuer_id: ENV['ASC_ISSUER_ID'],
-              key_content: key_data,
-              is_key_content_base64: false,
+              key_filepath: ENV['GITHUB_WORKSPACE'] + '/AuthKey.p8',
               in_house: false
             )
             
+            # 2. Create the App Record
             produce(
               app_identifier: ENV['APP_BUNDLE_ID'],
               app_name: ENV['APP_NAME'],
               sku: ENV['APP_BUNDLE_ID'],
               language: 'English',
-              team_id: ENV['APPLE_TEAM_ID'], # CRITICAL: Prevents Fastlane from falling back to asking for Apple ID to list teams
+              team_id: ENV['APPLE_TEAM_ID'],
               skip_devcenter: false,
               skip_itc: false
             )
