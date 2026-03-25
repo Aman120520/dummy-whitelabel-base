@@ -96,10 +96,7 @@ jobs:
         run: |
           mkdir -p fastlane
           
-          # FIX 1: Decode the key file directly to the Absolute Workspace Path
-          echo "$ASC_KEY_BASE64" | tr -d '\n\r ' | base64 --decode > ${{ github.workspace }}/AuthKey.p8
-          
-          # FIX 2: Point Fastlane to the exact absolute path using ${{ github.workspace }}
+          # Pass the base64 string directly into Fastlane instead of decoding it via bash to avoid file corruption
           echo "
           default_platform(:ios)
           
@@ -107,7 +104,8 @@ jobs:
             app_store_connect_api_key(
               key_id: ENV['ASC_KEY_ID'],
               issuer_id: ENV['ASC_ISSUER_ID'],
-              key_filepath: '${{ github.workspace }}/AuthKey.p8', # <--- 100% Bulletproof Absolute Path
+              key_content: ENV['ASC_KEY_BASE64'],
+              is_key_content_base64: true,
               in_house: false
             )
             
@@ -116,7 +114,7 @@ jobs:
               app_name: ENV['APP_NAME'],
               sku: ENV['APP_BUNDLE_ID'],
               language: 'English',
-              skip_devcenter: true, # Skips Apple Developer Portal
+              skip_devcenter: false, # Changed to false so the App ID is created in the Developer Portal first
               skip_itc: false
             )
           end
