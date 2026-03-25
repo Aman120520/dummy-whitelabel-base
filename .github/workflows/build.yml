@@ -91,21 +91,34 @@ jobs:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           ASC_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APP_BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APP_NAME: ${{ github.event.inputs.appName }}
         run: |
           mkdir -p fastlane
           
-          # Pass the base64 string directly into Fastlane instead of decoding it via bash to avoid file corruption
-          echo "
+          # Use cat with EOF to strictly prevent bash variable interpretation issues
+          cat << 'EOF' > fastlane/Fastfile
           default_platform(:ios)
           
           lane :create_app_shell do
+            require 'base64'
+            
+            raw_secret = ENV['ASC_KEY_BASE64'].to_s.strip
+            
+            # Auto-detect if the secret in GitHub is raw text or base64 encoded
+            if raw_secret.include?('BEGIN PRIVATE KEY')
+              key_content = raw_secret
+            else
+              key_content = Base64.decode64(raw_secret)
+            end
+            
+            File.write('AuthKey.p8', key_content)
+            
             app_store_connect_api_key(
               key_id: ENV['ASC_KEY_ID'],
               issuer_id: ENV['ASC_ISSUER_ID'],
-              key_content: ENV['ASC_KEY_BASE64'],
-              is_key_content_base64: true,
+              key_filepath: 'AuthKey.p8',
               in_house: false
             )
             
@@ -114,11 +127,12 @@ jobs:
               app_name: ENV['APP_NAME'],
               sku: ENV['APP_BUNDLE_ID'],
               language: 'English',
-              skip_devcenter: false, # Changed to false so the App ID is created in the Developer Portal first
+              team_id: ENV['APPLE_TEAM_ID'], # CRITICAL: Prevents Fastlane from falling back to asking for Apple ID to list teams
+              skip_devcenter: false,
               skip_itc: false
             )
           end
-          " > fastlane/Fastfile
+          EOF
           
           fastlane create_app_shell
 
