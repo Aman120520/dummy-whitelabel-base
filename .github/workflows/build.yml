@@ -108,17 +108,17 @@ jobs:
             
             # Auto-detect if the secret in GitHub is raw text or base64 encoded
             if raw_secret.include?('BEGIN PRIVATE KEY')
-              key_content = raw_secret
+              key_data = raw_secret
             else
-              key_content = Base64.decode64(raw_secret)
+              key_data = Base64.decode64(raw_secret)
             end
             
-            File.write('AuthKey.p8', key_content)
-            
+            # Pass the decoded key directly into memory instead of writing to disk!
             app_store_connect_api_key(
               key_id: ENV['ASC_KEY_ID'],
               issuer_id: ENV['ASC_ISSUER_ID'],
-              key_filepath: 'AuthKey.p8',
+              key_content: key_data,
+              is_key_content_base64: false,
               in_house: false
             )
             
