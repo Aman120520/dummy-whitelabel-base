@@ -8,11 +8,7 @@
                 "buildType": "apk"
             }
         },
-        "production": {
-            "ios": {
-                "buildType": "app-store"
-            }
-        }
+        "production": {}
     },
     "submit": {
         "production": {}
