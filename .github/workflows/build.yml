@@ -84,10 +84,7 @@ jobs:
       # Trigger Expo Cloud to handle the Apple Certificate creation, build, and TestFlight upload
       - name: Build & Upload to TestFlight
         env:
+          # ONLY pass the Expo Token. Let Expo's servers handle the Apple Keys natively!
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          # We leave these env vars as a fallback, but Expo will prioritize the key you uploaded to the dashboard!
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
         run: |
           eas build --platform ios --profile production --non-interactive --auto-submit
