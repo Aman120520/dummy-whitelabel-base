@@ -81,11 +81,6 @@ jobs:
             fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
           "
 
-      - name: Setup Apple API Key
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys/
-          echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
-
       - name: Install Fastlane
         run: sudo gem install fastlane
 
@@ -93,28 +88,28 @@ jobs:
         env:
           FASTLANE_OPT_OUT_USAGE: "1"
           FASTLANE_SKIP_UPDATE_CHECK: "1"
-          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          ASC_KEY_FILE: ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
-          APP_BUNDLE_ID: ${{ github.event.inputs.bundleId }}
-          APP_NAME: ${{ github.event.inputs.appName }}
         run: |
           mkdir -p fastlane
+          
+          # 1. Decode the Base64 key to a simple local file in the exact folder Fastlane runs from
+          echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | base64 --decode > AuthKey.p8
+          
+          # 2. Hardcode the exact values into the Ruby script so there are NO path issues
           echo "
           default_platform(:ios)
           
           lane :create_app_shell do
             app_store_connect_api_key(
-              key_id: ENV['ASC_KEY_ID'],
-              issuer_id: ENV['ASC_ISSUER_ID'],
-              key_filepath: ENV['ASC_KEY_FILE'],
+              key_id: '${{ secrets.APP_STORE_CONNECT_KEY_ID }}',
+              issuer_id: '${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}',
+              key_filepath: 'AuthKey.p8',
               in_house: false
             )
             
             produce(
-              app_identifier: ENV['APP_BUNDLE_ID'],
-              app_name: ENV['APP_NAME'],
-              sku: ENV['APP_BUNDLE_ID'],
+              app_identifier: '${{ github.event.inputs.bundleId }}',
+              app_name: '${{ github.event.inputs.appName }}',
+              sku: '${{ github.event.inputs.bundleId }}',
               language: 'English',
               skip_itc: false
             )
