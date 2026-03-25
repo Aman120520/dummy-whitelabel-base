@@ -85,6 +85,8 @@ jobs:
         run: |
           mkdir -p ~/.appstoreconnect/private_keys/
           echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          # FIX: Copy the file directly to the workspace so Fastlane's Ruby engine can read it easily
+          cp ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8 ./AuthKey.p8
 
       - name: Install Fastlane
         run: sudo gem install fastlane
@@ -95,7 +97,8 @@ jobs:
           FASTLANE_SKIP_UPDATE_CHECK: "1"
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          ASC_KEY_FILE: ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          # FIX: Provide Fastlane with the exact, absolute path to the file
+          ASC_KEY_FILE: ${{ github.workspace }}/AuthKey.p8
           APP_BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APP_NAME: ${{ github.event.inputs.appName }}
         run: |
