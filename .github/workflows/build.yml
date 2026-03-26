@@ -70,41 +70,48 @@ jobs:
           npm install -g eas-cli
 
       - name: Update app.json AND eas.json (iOS)
+        env:
+          APP_NAME: ${{ github.event.inputs.appName }}
+          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           node -e "
             const fs = require('fs');
             
-            // 1. Update app.json with Bundle ID
+            // 1. Update app.json with Bundle ID and Team ID
             const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-            appJson.expo.name = '${{ github.event.inputs.appName }}';
+            appJson.expo.name = process.env.APP_NAME;
             appJson.expo.ios = appJson.expo.ios || {};
-            appJson.expo.ios.bundleIdentifier = '${{ github.event.inputs.bundleId }}';
-            appJson.expo.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
+            appJson.expo.ios.bundleIdentifier = process.env.BUNDLE_ID;
+            appJson.expo.ios.appleTeamId = process.env.APPLE_TEAM_ID;
             fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
 
-            // 2. Update eas.json (This forces Expo to auto-create the App Store Connect record!)
+            // 2. Update eas.json for submission
             const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
             easJson.submit = easJson.submit || {};
             easJson.submit.production = easJson.submit.production || {};
             easJson.submit.production.ios = easJson.submit.production.ios || {};
             
-            easJson.submit.production.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
-            easJson.submit.production.ios.appName = '${{ github.event.inputs.appName }}';
-            easJson.submit.production.ios.sku = '${{ github.event.inputs.bundleId }}';
+            easJson.submit.production.ios.appleTeamId = process.env.APPLE_TEAM_ID;
+            easJson.submit.production.ios.appName = process.env.APP_NAME;
+            easJson.submit.production.ios.sku = process.env.BUNDLE_ID;
             easJson.submit.production.ios.language = 'en-US';
             
             fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
+            console.log('Updated app.json and eas.json successfully');
           "
 
       # Trigger Expo Cloud to handle the Apple Certificate creation, build, and TestFlight upload
       - name: Build & Upload to TestFlight
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          # OFFICIAL EXPO ENV VARS: Must be _IDENTIFIER (The previous _ID was incorrect)
+          # Use official EAS environment variables for App Store Connect API Key
           EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # Strip any accidental newlines or spaces from the Base64 key before passing to Expo
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | tr -d '\n\r ')
+          # Properly decode the P8 key from Base64
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_P8=$(echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | base64 --decode)
           
+          # Run EAS build in non-interactive mode
           eas build --platform ios --profile production --non-interactive --auto-submit
