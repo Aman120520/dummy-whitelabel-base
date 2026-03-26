@@ -105,13 +105,41 @@ jobs:
       - name: Build & Upload to TestFlight
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          # Use official EAS environment variables for App Store Connect API Key
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          P8_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
         run: |
-          # Properly decode the P8 key from Base64
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_P8=$(echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | base64 --decode)
+          # 1. Decode the P8 key
+          echo "$P8_BASE64" | base64 --decode > ./pc-key.p8
           
-          # Run EAS build in non-interactive mode
-          eas build --platform ios --profile production --non-interactive --auto-submit
+          # 2. Generate credentials.json dynamically to force local credential management
+          # This avoids the "Distribution Certificate is not validated" error from Expo servers.
+          node -e "
+            const fs = require('fs');
+            const p8Content = fs.readFileSync('./pc-key.p8', 'utf8');
+            const creds = {
+              ios: {
+                bundleIdentifier: process.env.BUNDLE_ID,
+                appleTeamId: process.env.APPLE_TEAM_ID,
+                appStoreConnectApiKey: {
+                  keyId: process.env.KEY_ID,
+                  issuerId: process.env.ISSUER_ID,
+                  p8: p8Content
+                }
+              }
+            };
+            fs.writeFileSync('credentials.json', JSON.stringify(creds, null, 2));
+            console.log('Generated credentials.json for ' + process.env.BUNDLE_ID);
+          "
+          
+          # 3. Use both environment variables and the credentials file for maximum compatibility
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_P8=$(cat ./pc-key.p8)
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER="$KEY_ID"
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_ID="$KEY_ID"
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID="$ISSUER_ID"
+          export EXPO_APPLE_TEAM_ID="$APPLE_TEAM_ID"
+          
+          # 4. Run EAS build with --credentials-source local to ignore broken remote credentials
+          eas build --platform ios --profile production --non-interactive --auto-submit --credentials-source local
