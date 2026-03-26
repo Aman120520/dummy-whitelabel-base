@@ -47,4 +47,4 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           # We add --non-interactive so the GitHub robot doesn't get stuck waiting for a (Y/n) prompt
-          eas build --platform ios --profile production --non-interactive --auto-submit
+          npx eas build --platform ios --profile production --auto-submit
