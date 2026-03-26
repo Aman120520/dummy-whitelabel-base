@@ -100,8 +100,8 @@ jobs:
       - name: Build & Upload to TestFlight
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          # FIX: The exact variable name must be _ID, not _IDENTIFIER!
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          # OFFICIAL EXPO ENV VARS: Must be _IDENTIFIER (The previous _ID was incorrect)
+          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           # Strip any accidental newlines or spaces from the Base64 key before passing to Expo
