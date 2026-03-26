@@ -42,14 +42,8 @@ jobs:
             appJson.expo.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
             fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
 
-            // 2. Update eas.json (Inject into BOTH build and submit profiles)
+            // 2. Update eas.json (Inject into submit profile)
             const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
-            
-            // Add Team ID to the build profile to prevent EAS disambiguation errors
-            easJson.build = easJson.build || {};
-            easJson.build.production = easJson.build.production || {};
-            easJson.build.production.ios = easJson.build.production.ios || {};
-            easJson.build.production.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
 
             // Add App Store Connect details to the submit profile
             easJson.submit = easJson.submit || {};
