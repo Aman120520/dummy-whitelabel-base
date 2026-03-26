@@ -42,12 +42,19 @@ jobs:
             appJson.expo.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
             fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
 
-            // 2. Update eas.json (This forces Expo to auto-create the App Store Connect record!)
+            // 2. Update eas.json (Inject into BOTH build and submit profiles)
             const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
+            
+            // Add Team ID to the build profile to prevent EAS disambiguation errors
+            easJson.build = easJson.build || {};
+            easJson.build.production = easJson.build.production || {};
+            easJson.build.production.ios = easJson.build.production.ios || {};
+            easJson.build.production.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
+
+            // Add App Store Connect details to the submit profile
             easJson.submit = easJson.submit || {};
             easJson.submit.production = easJson.submit.production || {};
             easJson.submit.production.ios = easJson.submit.production.ios || {};
-            
             easJson.submit.production.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
             easJson.submit.production.ios.appName = '${{ github.event.inputs.appName }}';
             easJson.submit.production.ios.sku = '${{ github.event.inputs.bundleId }}';
@@ -60,11 +67,12 @@ jobs:
       - name: Build & Upload to TestFlight
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          # OFFICIAL EXPO ENV VARS: Must be _IDENTIFIER
           EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          # Pass the raw base64 string safely as an environment variable first
+          RAW_P8_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
         run: |
-          # Strip any accidental newlines or spaces from the Base64 key before passing to Expo
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | tr -d '\n\r ')
+          # Clean the Base64 string of absolutely all whitespace/newlines before exporting
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "$RAW_P8_BASE64" | tr -d '[:space:]')
           
           eas build --platform ios --profile production --non-interactive --auto-submit
