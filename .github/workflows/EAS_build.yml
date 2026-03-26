@@ -1,21 +1,30 @@
-name: Generate Dummy App
+name: Generate Fast App (iOS Only)
 
 on:
   workflow_dispatch:
     inputs:
       clientId:
-        description: 'Client ID from Configurator'
-        required: false
+        description: 'Organization ID / Client ID'
+        required: true
+        type: string
+      appName:
+        description: 'App Name'
+        required: true
+        type: string
+      bundleId:
+        description: 'App Bundle ID (e.g., com.laundry.tayyar)'
+        required: true
+        type: string
 
 jobs:
-  build-android-apk:
+  build-ios-testflight:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
-        uses: actions/checkout@v4 # Upgraded to v4 to fix deprecation warnings
+        uses: actions/checkout@v4
 
       - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4 # Upgraded to v4 to fix deprecation warnings
+        uses: actions/setup-node@v4
         with:
           node-version: 18.x
 
@@ -24,14 +33,26 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-          packager: npm # Forces the action to use npm instead of yarn
-          eas-cache: false # Disables the buggy cache that threw the 400 error
+          packager: npm
+          eas-cache: false # Disables the buggy cache 
 
       - name: 📦 Install Dependencies
         run: npm install
 
-      - name: 🧬 Run Mutator Script
-        run: node scripts/setup-whitelabel.js
+      # I left the inline script here to ensure your iOS bundle ID correctly updates.
+      # If your new 'scripts/setup-whitelabel.js' handles iOS bundleId insertion, 
+      # you can replace this step with: run: node scripts/setup-whitelabel.js
+      - name: 🧬 Apply White-Label Config
+        run: |
+          node -e "
+            const fs = require('fs');
+            const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            appJson.expo.name = '${{ github.event.inputs.appName }}';
+            appJson.expo.ios = appJson.expo.ios || {};
+            appJson.expo.ios.bundleIdentifier = '${{ github.event.inputs.bundleId }}';
+            appJson.expo.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
+            fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
+          "
 
-      - name: 🏗️ Build APK with EAS
-        run: eas build --platform android --profile test-apk --non-interactive
+      - name: 🏗️ Build & Submit to TestFlight
+        run: eas build --platform ios --profile production --non-interactive --auto-submit
