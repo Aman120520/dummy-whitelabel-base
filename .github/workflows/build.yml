@@ -1,4 +1,4 @@
-name: Generate Fast App (Android & iOS)
+name: Generate Fast App (iOS Only)
 on:
   workflow_dispatch:
     inputs:
@@ -16,47 +16,7 @@ on:
         type: string
 
 jobs:
-  # --- 🤖 ANDROID BUILD (GitHub Actions) ---
-  build-android:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
-      - uses: actions/setup-java@v4
-        with: { distribution: 'zulu', java-version: '17', cache: 'gradle' }
-      
-      - name: Install dependencies
-        run: npm install
-
-      - name: Update app.json (Android)
-        run: |
-          node -e "
-            const fs = require('fs');
-            const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-            appJson.expo.name = '${{ github.event.inputs.appName }}';
-            appJson.expo.android = appJson.expo.android || {};
-            appJson.expo.android.package = '${{ github.event.inputs.bundleId }}';
-            fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
-          "
-
-      - name: Expo Prebuild
-        run: npx expo prebuild --platform android --clean
-        
-      - name: Build APK
-        run: |
-          cd android
-          export NODE_OPTIONS="--max-old-space-size=4096"
-          export _JAVA_OPTIONS="-Xmx4096m"
-          ./gradlew assembleRelease -x lint --no-daemon
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-unsigned
-          path: android/app/build/outputs/apk/release/*.apk
-
-  # --- 🍏 iOS TESTFLIGHT BUILD (Expo EAS) ---
+  # --- 🍏 iOS TESTFLIGHT BUILD ONLY (Expo EAS) ---
   build-ios:
     runs-on: ubuntu-latest
     steps:
@@ -70,76 +30,41 @@ jobs:
           npm install -g eas-cli
 
       - name: Update app.json AND eas.json (iOS)
-        env:
-          APP_NAME: ${{ github.event.inputs.appName }}
-          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           node -e "
             const fs = require('fs');
             
-            // 1. Update app.json with Bundle ID and Team ID
+            // 1. Update app.json with Bundle ID
             const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-            appJson.expo.name = process.env.APP_NAME;
+            appJson.expo.name = '${{ github.event.inputs.appName }}';
             appJson.expo.ios = appJson.expo.ios || {};
-            appJson.expo.ios.bundleIdentifier = process.env.BUNDLE_ID;
-            appJson.expo.ios.appleTeamId = process.env.APPLE_TEAM_ID;
+            appJson.expo.ios.bundleIdentifier = '${{ github.event.inputs.bundleId }}';
+            appJson.expo.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
             fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
 
-            // 2. Update eas.json for submission
+            // 2. Update eas.json (This forces Expo to auto-create the App Store Connect record!)
             const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
             easJson.submit = easJson.submit || {};
             easJson.submit.production = easJson.submit.production || {};
             easJson.submit.production.ios = easJson.submit.production.ios || {};
             
-            easJson.submit.production.ios.appleTeamId = process.env.APPLE_TEAM_ID;
-            easJson.submit.production.ios.appName = process.env.APP_NAME;
-            easJson.submit.production.ios.sku = process.env.BUNDLE_ID;
+            easJson.submit.production.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
+            easJson.submit.production.ios.appName = '${{ github.event.inputs.appName }}';
+            easJson.submit.production.ios.sku = '${{ github.event.inputs.bundleId }}';
             easJson.submit.production.ios.language = 'en-US';
             
             fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
-            console.log('Updated app.json and eas.json successfully');
           "
 
       # Trigger Expo Cloud to handle the Apple Certificate creation, build, and TestFlight upload
       - name: Build & Upload to TestFlight
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          P8_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+          # OFFICIAL EXPO ENV VARS: Must be _IDENTIFIER
+          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          # 1. Decode the P8 key
-          echo "$P8_BASE64" | base64 --decode > ./pc-key.p8
+          # Strip any accidental newlines or spaces from the Base64 key before passing to Expo
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | tr -d '\n\r ')
           
-          # 2. Generate credentials.json dynamically to force local credential management
-          # This avoids the "Distribution Certificate is not validated" error from Expo servers.
-          node -e "
-            const fs = require('fs');
-            const p8Content = fs.readFileSync('./pc-key.p8', 'utf8');
-            const creds = {
-              ios: {
-                bundleIdentifier: process.env.BUNDLE_ID,
-                appleTeamId: process.env.APPLE_TEAM_ID,
-                appStoreConnectApiKey: {
-                  keyId: process.env.KEY_ID,
-                  issuerId: process.env.ISSUER_ID,
-                  p8: p8Content
-                }
-              }
-            };
-            fs.writeFileSync('credentials.json', JSON.stringify(creds, null, 2));
-            console.log('Generated credentials.json for ' + process.env.BUNDLE_ID);
-          "
-          
-          # 3. Use both environment variables and the credentials file for maximum compatibility
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_P8=$(cat ./pc-key.p8)
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER="$KEY_ID"
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_ID="$KEY_ID"
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID="$ISSUER_ID"
-          export EXPO_APPLE_TEAM_ID="$APPLE_TEAM_ID"
-          
-          # 4. Run EAS build with --credentials-source local to ignore broken remote credentials
-          eas build --platform ios --profile production --non-interactive --auto-submit --credentials-source local
+          eas build --platform ios --profile production --non-interactive --auto-submit
