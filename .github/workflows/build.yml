@@ -69,4 +69,4 @@ jobs:
           # Clean the Base64 string of absolutely all whitespace/newlines before exporting
           export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "$RAW_P8_BASE64" | tr -d '[:space:]')
           
-          eas build --platform ios --profile production --non-interactive --auto-submit
+          eas build --platform ios --profile production --auto-submit
