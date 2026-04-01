@@ -18,7 +18,6 @@ on:
 
 jobs:
   build-ios-testflight:
-    # EAS builds happen in Expo's cloud, so we can use a fast ubuntu runner to trigger it!
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Code
@@ -35,7 +34,7 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
           packager: npm
-          eas-cache: false # Disables the buggy cache
+          eas-cache: false # Disables the buggy cache 
 
       - name: 📦 Install Dependencies
         run: npm install
@@ -53,4 +52,13 @@ jobs:
           "
 
       - name: 🏗️ Build & Submit to TestFlight
-        run: eas build --platform ios --profile production --non-interactive --auto-submit
+        env:
+          # EAS CLI strictly requires these locally to validate certificates before sending the build!
+          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          RAW_P8_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+        run: |
+          # The absolute safest way to pass the Base64 key: strip all hidden newlines/spaces
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "$RAW_P8_BASE64" | tr -d '[:space:]')
+          
+          eas build --platform ios --profile production --non-interactive --auto-submit
