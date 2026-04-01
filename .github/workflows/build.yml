@@ -1,4 +1,5 @@
 name: Generate Fast App (iOS Only)
+
 on:
   workflow_dispatch:
     inputs:
@@ -16,20 +17,30 @@ on:
         type: string
 
 jobs:
-  # --- 🍏 iOS TESTFLIGHT BUILD ONLY (Expo EAS) ---
-  build-ios:
+  build-ios-testflight:
+    # EAS builds happen in Expo's cloud, so we can use a fast ubuntu runner to trigger it!
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
-      
-      - name: Install dependencies & Expo CLI
-        run: |
-          npm install
-          npm install -g eas-cli
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Update app.json
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+
+      - name: 🛠️ Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
+          eas-cache: false # Disables the buggy cache
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🧬 Apply White-Label Config
         run: |
           node -e "
             const fs = require('fs');
@@ -41,17 +52,5 @@ jobs:
             fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
           "
 
-      - name: Build & Upload to TestFlight
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          # Required for non-interactive builds to validate/create the Distribution Certificate
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          # Decode the P8 API Key from Base64
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_P8=$(echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | base64 --decode)
-          
-          # Run EAS build in non-interactive mode
-          # npx eas build --platform ios --profile production --non-interactive --auto-submit
-          npx eas build --platform ios --profile production --auto-submit
+      - name: 🏗️ Build & Submit to TestFlight
+        run: eas build --platform ios --profile production --non-interactive --auto-submit
