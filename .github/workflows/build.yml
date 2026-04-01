@@ -53,4 +53,5 @@ jobs:
           export EXPO_APPLE_APP_STORE_CONNECT_KEY_P8=$(echo "${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}" | base64 --decode)
           
           # Run EAS build in non-interactive mode
-          npx eas build --platform ios --profile production --non-interactive --auto-submit
+          # npx eas build --platform ios --profile production --non-interactive --auto-submit
+          npx eas build --platform ios --profile production --auto-submit
