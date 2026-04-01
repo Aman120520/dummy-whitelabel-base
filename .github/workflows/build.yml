@@ -34,8 +34,6 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-          packager: npm
-          eas-cache: false 
 
       - name: 📦 Install dependencies
         run: npm install
@@ -53,7 +51,7 @@ jobs:
             appJson.expo.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
             fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
 
-            // 2. Inject App Store Connect details into eas.json submit profile
+            // 2. Inject App Store Connect details into eas.json
             const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
             easJson.submit = easJson.submit || {};
             easJson.submit.production = easJson.submit.production || {};
@@ -62,31 +60,25 @@ jobs:
             easJson.submit.production.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
             easJson.submit.production.ios.appName = '${{ github.event.inputs.appName }}';
             easJson.submit.production.ios.sku = '${{ github.event.inputs.bundleId }}';
-            easJson.submit.production.ios.language = 'en-US';
             
             fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
           "
 
       - name: 🚀 Build and Submit to TestFlight
+        # Mapping these at the STEP level is more reliable than 'export' in a script
         env:
-          # Standard Submit variables
+          # For Build & Submit (Newer Standard)
           EXPO_ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           EXPO_ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          # Build-specific variables to force API Key auth during certificate validation
+          EXPO_ASC_CONTENT: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+          # For Build (Legacy Enforcement)
           EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # The Raw P8 Content
-          P8_CONTENT: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
         run: |
-          # Create a temporary file for the p8 key to ensure it's read correctly by EAS
-          # Some versions of EAS prefer the file content as a single line base64 string
-          export EXPO_ASC_CONTENT=$(echo "$P8_CONTENT" | base64 -w 0)
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "$P8_CONTENT" | base64 -w 0)
-          
-          # 1. BUILD: We include the --non-interactive flag. 
-          # Providing the ASC keys in ENV forces EAS to bypass session-based login.
+          # 1. BUILD: --non-interactive will now use the env vars above for Apple Auth
           eas build --platform ios --profile production --non-interactive
           
-          # 2. SUBMIT: Use the build generated above
+          # 2. SUBMIT: Pushes the result to App Store Connect
           eas submit --platform ios --profile production --latest --non-interactive --no-wait
