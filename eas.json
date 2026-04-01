@@ -21,6 +21,9 @@
                 "EXPO_PUBLIC_COUPONS_API_URL": "$EXPO_PUBLIC_COUPONS_API_URL",
                 "EXPO_PUBLIC_REFERRAL_API_URL": "$EXPO_PUBLIC_REFERRAL_API_URL",
                 "EXPO_PUBLIC_STRIPE_API_URL": "$EXPO_PUBLIC_STRIPE_API_URL"
+            },
+            "ios": {
+                "credentialsSource": "remote"
             }
         }
     },
