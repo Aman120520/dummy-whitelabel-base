@@ -69,17 +69,15 @@ jobs:
 
       - name: 🚀 Build and Submit to TestFlight
         env:
-          # We use the App Store Connect Keys as you suggested for reliable submissions!
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          RAW_P8_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+          # Use the standard EAS variables that work for both Build AND Submit
+          EXPO_ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          # The variable name EXPO_ASC_CONTENT is the modern standard for the .p8 file content
+          EXPO_ASC_CONTENT: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # Safely clean the Base64 key
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "$RAW_P8_BASE64" | tr -d '[:space:]')
-          
-          # 1. BUILD: We MUST wait here so the .ipa file actually exists before moving to step 2!
+          # 1. BUILD: --non-interactive is used, but now with ASC keys provided in env
           eas build --platform ios --profile production --non-interactive
           
-          # 2. SUBMIT: Take the latest compiled build and push it to Apple.
-          # We CAN use --no-wait here so GitHub finishes immediately while Apple's servers process it.
+          # 2. SUBMIT: Take the build we just made and push to Apple
           eas submit --platform ios --profile production --latest --non-interactive --no-wait

@@ -55,6 +55,12 @@
         "projectId": "952733e3-51a5-40b4-8554-eaac3a5a6390"
       }
     },
-    "owner": "wesencedev"
+    "owner": "wesencedev",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/952733e3-51a5-40b4-8554-eaac3a5a6390"
+    }
   }
 }
