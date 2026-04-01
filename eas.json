@@ -6,11 +6,29 @@
         "test-apk": {
             "android": {
                 "buildType": "apk"
-            }
+            },
+            "ios": {
+                "image": "latest",
+                "simulator": true
+            },
+            "channel": "preview"
         },
-        "production": {}
+        "production": {
+            "autoIncrement": true,
+            "channel": "production",
+            "env": {
+                "EXPO_PUBLIC_CONFIG_API_URL": "$EXPO_PUBLIC_CONFIG_API_URL",
+                "EXPO_PUBLIC_COUPONS_API_URL": "$EXPO_PUBLIC_COUPONS_API_URL",
+                "EXPO_PUBLIC_REFERRAL_API_URL": "$EXPO_PUBLIC_REFERRAL_API_URL",
+                "EXPO_PUBLIC_STRIPE_API_URL": "$EXPO_PUBLIC_STRIPE_API_URL"
+            }
+        }
     },
     "submit": {
-        "production": {}
+        "production": {
+            "ios": {
+                "ascAppId": "1481554539"
+            }
+        }
     }
 }
