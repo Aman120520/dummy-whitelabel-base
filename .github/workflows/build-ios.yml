@@ -69,15 +69,24 @@ jobs:
 
       - name: 🚀 Build and Submit to TestFlight
         env:
-          # Use the standard EAS variables that work for both Build AND Submit
+          # Standard Submit variables
           EXPO_ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           EXPO_ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          # The variable name EXPO_ASC_CONTENT is the modern standard for the .p8 file content
-          EXPO_ASC_CONTENT: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+          # Build-specific variables to force API Key auth during certificate validation
+          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # The Raw P8 Content
+          P8_CONTENT: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
         run: |
-          # 1. BUILD: --non-interactive is used, but now with ASC keys provided in env
+          # Create a temporary file for the p8 key to ensure it's read correctly by EAS
+          # Some versions of EAS prefer the file content as a single line base64 string
+          export EXPO_ASC_CONTENT=$(echo "$P8_CONTENT" | base64 -w 0)
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "$P8_CONTENT" | base64 -w 0)
+          
+          # 1. BUILD: We include the --non-interactive flag. 
+          # Providing the ASC keys in ENV forces EAS to bypass session-based login.
           eas build --platform ios --profile production --non-interactive
           
-          # 2. SUBMIT: Take the build we just made and push to Apple
+          # 2. SUBMIT: Use the build generated above
           eas submit --platform ios --profile production --latest --non-interactive --no-wait
