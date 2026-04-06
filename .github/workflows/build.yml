@@ -81,5 +81,17 @@ jobs:
           RAW_P8: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
         run: |
           export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "$RAW_P8" | base64)
+
+          # Verify env vars are set
+          echo "✅ Checking credentials..."
+          [[ -n "$EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER" ]] && echo "  ✓ KEY_IDENTIFIER set" || echo "  ✗ KEY_IDENTIFIER missing"
+          [[ -n "$EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID" ]] && echo "  ✓ KEY_ISSUER_ID set" || echo "  ✗ KEY_ISSUER_ID missing"
+          [[ -n "$EXPO_APPLE_TEAM_ID" ]] && echo "  ✓ TEAM_ID set" || echo "  ✗ TEAM_ID missing"
+          [[ -n "$EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64" ]] && echo "  ✓ KEY_BASE64 set" || echo "  ✗ KEY_BASE64 missing"
+
+          # Verify eas.json has credentialsSource: local
+          echo "✅ Checking eas.json..."
+          grep -q '"credentialsSource": "local"' eas.json && echo "  ✓ credentialsSource: local found" || echo "  ✗ credentialsSource not set to local"
+
           eas build --platform ios --profile production --non-interactive
           eas submit --platform ios --profile production --latest --non-interactive --no-wait
