@@ -12,6 +12,7 @@ export default function App() {
     const [easPipeline, setEasPipeline] = useState({
         expoToken: '',                          // Your Expo Token
         appleTeamId: '',                        // Your Apple Team ID
+        projectId: '952733e3-51a5-40b4-8554-eaac3a5a6390', // EAS Project ID
         bundleId: 'com.laundry.tayyar24',       // iOS Bundle ID
     });
 
@@ -46,17 +47,13 @@ export default function App() {
         addLog("Preparing EAS Workflow...");
 
         try {
-            // Get project ID from app.json
+            // Get project ID from input field or app.json
             addLog("Reading project configuration...");
-            const appJsonResponse = await fetch('./app.json');
-            if (!appJsonResponse.ok) {
-                throw new Error('Could not read app.json');
-            }
-            const appJson = await appJsonResponse.json();
-            const projectId = appJson.extra?.eas?.projectId;
+
+            let projectId = easPipeline.projectId?.trim();
 
             if (!projectId) {
-                throw new Error('Project ID not found in app.json');
+                throw new Error('Project ID is required. Enter it in the form or check app.json');
             }
 
             addLog(`Project ID: ${projectId}`);
@@ -150,6 +147,17 @@ export default function App() {
                         value={easPipeline.expoToken}
                         onChange={(e) => setEasPipeline({ ...easPipeline, expoToken: e.target.value })}
                     />
+
+                    <label style={styles.label}>EAS Project ID</label>
+                    <input
+                        style={styles.input}
+                        placeholder="952733e3-51a5-40b4-8554-eaac3a5a6390"
+                        value={easPipeline.projectId}
+                        onChange={(e) => setEasPipeline({ ...easPipeline, projectId: e.target.value })}
+                    />
+                    <p style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                        Find in app.json: extra.eas.projectId
+                    </p>
 
                     <label style={styles.label}>Apple Team ID</label>
                     <input
