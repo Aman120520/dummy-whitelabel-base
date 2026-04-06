@@ -1,0 +1,64 @@
+name: Build and Submit to TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      appName:
+        description: 'App Name'
+        required: true
+        type: string
+      bundleId:
+        description: 'iOS Bundle ID (e.g., com.company.appname)'
+        required: true
+        type: string
+      clientId:
+        description: 'Client/Organization ID'
+        required: true
+        type: string
+
+jobs:
+  build_and_submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Configure white-label app
+        run: node scripts/configure-white-label.js
+        env:
+          APP_NAME: ${{ github.event.inputs.appName }}
+          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Build iOS app with EAS
+        run: eas build --platform ios --profile production --non-interactive --wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit to TestFlight
+        run: eas submit --platform ios --profile production --latest --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Success
+        if: success()
+        run: |
+          echo "✅ Build and TestFlight submission successful!"
+          echo "App: ${{ github.event.inputs.appName }}"
+          echo "Bundle ID: ${{ github.event.inputs.bundleId }}"
+          echo "Check TestFlight in ~15-20 minutes"
