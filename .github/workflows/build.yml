@@ -53,13 +53,6 @@ jobs:
 
             // 2. Inject App Store Connect details into eas.json
             const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
-            easJson.build = easJson.build || {};
-            easJson.build.production = easJson.build.production || {};
-            easJson.build.production.ios = easJson.build.production.ios || {};
-
-            // CRITICAL: Ensure credentialsSource is set to 'local' for API key auth
-            easJson.build.production.ios.credentialsSource = 'local';
-
             easJson.submit = easJson.submit || {};
             easJson.submit.production = easJson.submit.production || {};
             easJson.submit.production.ios = easJson.submit.production.ios || {};
@@ -70,28 +63,18 @@ jobs:
             easJson.submit.production.ios.sku = '${{ github.event.inputs.bundleId }}';
 
             fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
-            console.log('✅ eas.json updated with credentialsSource: local');
           "
 
-      - name: 🚀 Build and Submit to TestFlight
+      - name: 📱 Register Bundle ID in App Store Connect
         env:
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          RAW_P8: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_P8_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+        run: node scripts/register-bundle-id.js
+
+      - name: 🚀 Build and Submit to TestFlight
         run: |
-          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "$RAW_P8" | base64)
-
-          # Verify env vars are set
-          echo "✅ Checking credentials..."
-          [[ -n "$EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER" ]] && echo "  ✓ KEY_IDENTIFIER set" || echo "  ✗ KEY_IDENTIFIER missing"
-          [[ -n "$EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID" ]] && echo "  ✓ KEY_ISSUER_ID set" || echo "  ✗ KEY_ISSUER_ID missing"
-          [[ -n "$EXPO_APPLE_TEAM_ID" ]] && echo "  ✓ TEAM_ID set" || echo "  ✗ TEAM_ID missing"
-          [[ -n "$EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64" ]] && echo "  ✓ KEY_BASE64 set" || echo "  ✗ KEY_BASE64 missing"
-
-          # Verify eas.json has credentialsSource: local
-          echo "✅ Checking eas.json..."
-          grep -q '"credentialsSource": "local"' eas.json && echo "  ✓ credentialsSource: local found" || echo "  ✗ credentialsSource not set to local"
-
           eas build --platform ios --profile production --non-interactive
           eas submit --platform ios --profile production --latest --non-interactive --no-wait
