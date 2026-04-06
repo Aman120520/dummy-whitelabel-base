@@ -22,9 +22,13 @@ app.use(express.static('web-configrator'));
 
 // API endpoint
 app.post('/api/trigger-workflow', async (req, res) => {
+  console.log('[Server] POST /api/trigger-workflow');
+  console.log('[Server] Request body:', req.body);
+
   try {
     await triggerWorkflow(req, res);
   } catch (error) {
+    console.error('[Server] Error:', error.message);
     res.status(500).json({
       error: 'API Error',
       message: error.message,

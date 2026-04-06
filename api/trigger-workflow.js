@@ -95,17 +95,21 @@ module.exports = async (req, res) => {
     );
 
     if (response.status >= 400) {
+      console.error(`[API] EAS API Error ${response.status}:`, response.rawData);
       res.status(response.status).json({
         error: 'Failed to trigger workflow',
         status: response.status,
-        details: response.rawData,
+        details: response.body || response.rawData,
       });
       return;
     }
 
+    const runId = response.body?.id;
+    console.log(`[API] Workflow triggered successfully! Run ID: ${runId}`);
+
     res.status(200).json({
       success: true,
-      runId: response.body?.id,
+      runId,
       message: 'Workflow triggered successfully',
     });
 
