@@ -32,9 +32,7 @@
   },
   "submit": {
     "production": {
-      "ios": {
-        "usesNonExemptEncryption": false
-      }
+      "ios": {}
     }
   }
 }
