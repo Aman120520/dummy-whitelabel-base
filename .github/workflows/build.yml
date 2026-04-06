@@ -69,8 +69,9 @@ jobs:
         env:
           EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          RAW_P8: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
         run: |
+          export EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64=$(echo "$RAW_P8" | base64)
           eas build --platform ios --profile production --non-interactive
           eas submit --platform ios --profile production --latest --non-interactive --no-wait
