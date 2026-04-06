@@ -288,7 +288,10 @@
         async function triggerWorkflow() {
             if (isBuilding) return;
 
-            const githubToken = document.getElementById('githubToken').value.trim();
+            // Clean token: remove whitespace and invisible characters
+            const githubToken = document.getElementById('githubToken').value
+                .trim()
+                .replace(/[\x00-\x1F\x7F-\x9F]/g, ''); // Remove control characters
             const owner = document.getElementById('owner').value.trim();
             const repo = document.getElementById('repo').value.trim();
             const clientId = document.getElementById('clientId').value.trim();

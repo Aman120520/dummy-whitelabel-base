@@ -17,8 +17,10 @@ const https = require('https');
 function makeRequest(method, pathname, body, token, isGitHub = false) {
   return new Promise((resolve, reject) => {
     const hostname = isGitHub ? 'api.github.com' : 'api.expo.dev';
+
+    // For GitHub: use token directly, for Expo: use Bearer token
     const authHeader = isGitHub
-      ? `Bearer ${token}`
+      ? `token ${token.trim()}`
       : `Bearer ${token}`;
 
     const options = {
@@ -34,12 +36,15 @@ function makeRequest(method, pathname, body, token, isGitHub = false) {
       },
     };
 
+    console.log(`[makeRequest] ${method} https://${hostname}${pathname}`);
+
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => {
         data += chunk;
       });
       res.on('end', () => {
+        console.log(`[makeRequest] Response ${res.statusCode}`);
         try {
           const parsed = data ? JSON.parse(data) : null;
           resolve({ status: res.statusCode, body: parsed, rawData: data });
@@ -49,7 +54,10 @@ function makeRequest(method, pathname, body, token, isGitHub = false) {
       });
     });
 
-    req.on('error', reject);
+    req.on('error', (error) => {
+      console.error(`[makeRequest] Error:`, error.message);
+      reject(error);
+    });
 
     if (body) {
       req.write(JSON.stringify(body));
@@ -120,9 +128,12 @@ module.exports = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('[API] Exception:', error.message);
+    console.error('[API] Stack:', error.stack);
     res.status(500).json({
       error: 'Internal server error',
       message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 };
