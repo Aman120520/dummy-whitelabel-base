@@ -38,6 +38,13 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install
 
+      - name: 🧬 Apply White-Label Config
+        run: node scripts/configure-white-label.js
+        env:
+          APP_NAME: ${{ github.event.inputs.appName }}
+          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
       - name: 🔐 Setup iOS Credentials
         run: node scripts/create-credentials-file.js
         env:
@@ -45,13 +52,6 @@ jobs:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_P8_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
-
-      - name: 🧬 Apply White-Label Config
-        run: node scripts/configure-white-label.js
-        env:
-          APP_NAME: ${{ github.event.inputs.appName }}
-          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: 🚀 Build & Submit to TestFlight
         run: |
