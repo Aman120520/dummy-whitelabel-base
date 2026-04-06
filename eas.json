@@ -24,15 +24,13 @@
         "EXPO_PUBLIC_STRIPE_API_URL": "$EXPO_PUBLIC_STRIPE_API_URL"
       },
       "ios": {
-        "credentialsSource": "remote"
+        "credentialsSource": "local"
       }
     }
   },
   "submit": {
     "production": {
-      "ios": {
-        "ascAppId": "1481554539"
-      }
+      "ios": {}
     }
   }
 }

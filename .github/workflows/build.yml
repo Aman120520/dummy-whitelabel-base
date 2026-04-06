@@ -42,7 +42,7 @@ jobs:
         run: |
           node -e "
             const fs = require('fs');
-            
+
             // 1. Update app.json
             const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
             appJson.expo.name = '${{ github.event.inputs.appName }}';
@@ -56,29 +56,21 @@ jobs:
             easJson.submit = easJson.submit || {};
             easJson.submit.production = easJson.submit.production || {};
             easJson.submit.production.ios = easJson.submit.production.ios || {};
-            
+
+            delete easJson.submit.production.ios.ascAppId;
             easJson.submit.production.ios.appleTeamId = '${{ secrets.APPLE_TEAM_ID }}';
             easJson.submit.production.ios.appName = '${{ github.event.inputs.appName }}';
             easJson.submit.production.ios.sku = '${{ github.event.inputs.bundleId }}';
-            
+
             fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
           "
 
       - name: 🚀 Build and Submit to TestFlight
-        # Mapping these at the STEP level is more reliable than 'export' in a script
         env:
-          # For Build & Submit (Newer Standard)
-          EXPO_ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          EXPO_ASC_CONTENT: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
-          # For Build (Legacy Enforcement)
           EXPO_APPLE_APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
           EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # 1. BUILD: --non-interactive will now use the env vars above for Apple Auth
           eas build --platform ios --profile production --non-interactive
-          
-          # 2. SUBMIT: Pushes the result to App Store Connect
           eas submit --platform ios --profile production --latest --non-interactive --no-wait
