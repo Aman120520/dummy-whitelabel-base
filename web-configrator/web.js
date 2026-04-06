@@ -46,7 +46,7 @@ export default function App() {
         setLogs([]); // Clear old logs
         addLog("Preparing webhook payload...");
 
-        const githubApiUrl = `https://api.github.com/repos/${pipeline.owner}/${pipeline.repo}/actions/workflows/build.yml/dispatches`;
+        const githubApiUrl = `https://api.github.com/repos/${pipeline.owner}/${pipeline.repo}/actions/workflows/build-testflight.yml/dispatches`;
 
         try {
             addLog(`Sending request to ${pipeline.owner}/${pipeline.repo}...`);
