@@ -14,17 +14,23 @@
 
 const https = require('https');
 
-function makeRequest(method, pathname, body, token) {
+function makeRequest(method, pathname, body, token, isGitHub = false) {
   return new Promise((resolve, reject) => {
+    const hostname = isGitHub ? 'api.github.com' : 'api.expo.dev';
+    const authHeader = isGitHub
+      ? `Bearer ${token}`
+      : `Bearer ${token}`;
+
     const options = {
-      hostname: 'api.expo.dev',
+      hostname,
       port: 443,
       path: pathname,
       method,
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'white-label-configurator',
       },
     };
 
@@ -69,33 +75,35 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { expoToken, projectId, appName, bundleId, appleTeamId } = req.body;
+    const { githubToken, owner, repo, appName, bundleId, clientId } = req.body;
 
     // Validate inputs
-    if (!expoToken || !projectId || !appName || !bundleId || !appleTeamId) {
+    if (!githubToken || !owner || !repo || !appName || !bundleId || !clientId) {
       res.status(400).json({
         error: 'Missing required fields',
-        required: ['expoToken', 'projectId', 'appName', 'bundleId', 'appleTeamId'],
+        required: ['githubToken', 'owner', 'repo', 'appName', 'bundleId', 'clientId'],
       });
       return;
     }
 
-    // Trigger EAS Workflow
+    // Trigger GitHub Actions Workflow
     const response = await makeRequest(
       'POST',
-      `/v2/projects/${projectId}/workflows/build-testflight.yml/runs`,
+      `/repos/${owner}/${repo}/actions/workflows/build.yml/dispatches`,
       {
-        env: {
-          APP_NAME: appName,
-          BUNDLE_ID: bundleId.toLowerCase(),
-          APPLE_TEAM_ID: appleTeamId,
+        ref: 'main',
+        inputs: {
+          appName,
+          bundleId: bundleId.toLowerCase(),
+          clientId,
         },
       },
-      expoToken
+      githubToken,
+      true // isGitHub = true
     );
 
     if (response.status >= 400) {
-      console.error(`[API] EAS API Error ${response.status}:`, response.rawData);
+      console.error(`[API] GitHub API Error ${response.status}:`, response.rawData);
       res.status(response.status).json({
         error: 'Failed to trigger workflow',
         status: response.status,
@@ -104,13 +112,11 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const runId = response.body?.id;
-    console.log(`[API] Workflow triggered successfully! Run ID: ${runId}`);
+    console.log(`[API] GitHub Workflow triggered successfully!`);
 
     res.status(200).json({
       success: true,
-      runId,
-      message: 'Workflow triggered successfully',
+      message: 'Workflow triggered successfully. Build will start in GitHub Actions.',
     });
 
   } catch (error) {

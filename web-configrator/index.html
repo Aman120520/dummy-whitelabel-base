@@ -209,18 +209,21 @@
 
             <!-- Build & Deploy Card -->
             <div class="card">
-                <h2>2. Build & Deploy (EAS)</h2>
-                <p>Trigger iOS TestFlight build via EAS Workflows.</p>
+                <h2>2. Build & Deploy (GitHub Actions)</h2>
+                <p>Trigger iOS TestFlight build via GitHub Actions.</p>
 
-                <label>Expo Token</label>
-                <input type="password" id="expoToken" placeholder="expo_...">
+                <label>GitHub PAT (Token)</label>
+                <input type="password" id="githubToken" placeholder="ghp_...">
+                <div class="hint">Create at: https://github.com/settings/tokens</div>
 
-                <label>EAS Project ID</label>
-                <input type="text" id="projectId" value="952733e3-51a5-40b4-8554-eaac3a5a6390">
-                <div class="hint">Find in app.json: extra.eas.projectId</div>
+                <label>Repository Owner</label>
+                <input type="text" id="owner" value="Aman120520" placeholder="your-github-username">
 
-                <label>Apple Team ID</label>
-                <input type="text" id="appleTeamId" placeholder="XXXXXXXXXX">
+                <label>Repository Name</label>
+                <input type="text" id="repo" value="dummy-whitelabel-base" placeholder="your-repo-name">
+
+                <label>Client / Organization ID</label>
+                <input type="text" id="clientId" value="4565" placeholder="4565">
 
                 <label>iOS Bundle ID</label>
                 <input type="text" id="bundleId" value="com.laundry.tayyar24" placeholder="com.company.appname">
@@ -285,20 +288,26 @@
         async function triggerWorkflow() {
             if (isBuilding) return;
 
-            const expoToken = document.getElementById('expoToken').value.trim();
-            const projectId = document.getElementById('projectId').value.trim();
-            const appleTeamId = document.getElementById('appleTeamId').value.trim();
+            const githubToken = document.getElementById('githubToken').value.trim();
+            const owner = document.getElementById('owner').value.trim();
+            const repo = document.getElementById('repo').value.trim();
+            const clientId = document.getElementById('clientId').value.trim();
             const bundleId = document.getElementById('bundleId').value.trim();
             const appName = document.getElementById('appName').value.trim();
 
             // Validate inputs
-            if (!expoToken) {
-                alert('Please enter your Expo Token!');
+            if (!githubToken) {
+                alert('Please enter your GitHub PAT!');
                 return;
             }
 
-            if (!appleTeamId) {
-                alert('Please enter your Apple Team ID!');
+            if (!owner || !repo) {
+                alert('Please enter repository owner and name!');
+                return;
+            }
+
+            if (!clientId) {
+                alert('Please enter Client ID!');
                 return;
             }
 
@@ -314,7 +323,7 @@
             addLog('Preparing EAS Workflow...');
 
             try {
-                addLog('Sending request to trigger workflow...');
+                addLog('Sending request to GitHub Actions...');
 
                 const response = await fetch('/api/trigger-workflow', {
                     method: 'POST',
@@ -322,11 +331,12 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        expoToken,
-                        projectId,
+                        githubToken,
+                        owner,
+                        repo,
                         appName,
                         bundleId: bundleId.toLowerCase(),
-                        appleTeamId,
+                        clientId,
                     }),
                 });
 
@@ -341,14 +351,10 @@
                     throw new Error(errorMsg);
                 }
 
-                const runId = data.runId;
-
-                addLog('✅ EAS Workflow triggered successfully!');
-                addLog(`Run ID: ${runId}`);
+                addLog('✅ GitHub Actions workflow triggered successfully!');
                 addLog('');
                 addLog('📊 Check status:');
-                addLog(`   eas workflow:status ${runId}`);
-                addLog(`   eas workflow:logs ${runId}`);
+                addLog(`   GitHub: https://github.com/${owner}/${repo}/actions`);
                 addLog('');
                 addLog('🎯 App will appear in TestFlight in ~15-20 minutes');
 
