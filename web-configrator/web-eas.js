@@ -59,34 +59,49 @@ export default function App() {
             addLog(`Project ID: ${projectId}`);
             addLog("Triggering EAS Workflow...");
 
-            // Trigger EAS Workflow via API
-            const workflowUrl = `https://api.expo.dev/v2/projects/${projectId}/workflows/build-testflight.yml/runs`;
+            // Determine API endpoint
+            // If running locally (localhost), use direct API
+            // If running on server, use backend API endpoint
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            let apiUrl;
 
-            const response = await fetch(workflowUrl, {
+            if (isLocalhost) {
+                // Local development - use backend API
+                apiUrl = `http://localhost:3000/api/trigger-workflow`;
+            } else {
+                // Production - use backend API
+                apiUrl = `/api/trigger-workflow`;
+            }
+
+            addLog(`Using API: ${apiUrl}`);
+
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${easPipeline.expoToken}`,
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
                 },
                 body: JSON.stringify({
-                    env: {
-                        APP_NAME: appTheme.appName,
-                        BUNDLE_ID: easPipeline.bundleId.toLowerCase(),
-                        APPLE_TEAM_ID: easPipeline.appleTeamId,
-                    },
+                    expoToken: easPipeline.expoToken,
+                    projectId: projectId,
+                    appName: appTheme.appName,
+                    bundleId: easPipeline.bundleId,
+                    appleTeamId: easPipeline.appleTeamId,
                 }),
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(
-                    `${response.status}: ${errorData.message || 'Unknown error'}`
+                    `${response.status}: ${errorData.error || errorData.message || 'Unknown error'}`
                 );
             }
 
             const data = await response.json();
-            const runId = data.id;
+            const runId = data.runId;
+
+            if (!runId) {
+                throw new Error('No run ID received from API');
+            }
 
             addLog("✅ EAS Workflow triggered successfully!");
             addLog(`Run ID: ${runId}`);
