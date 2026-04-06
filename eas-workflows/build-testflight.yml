@@ -1,0 +1,48 @@
+name: Build and Deploy to TestFlight
+
+concurrency: 1
+
+jobs:
+  configure_and_build:
+    name: Configure App and Build for TestFlight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github/checkout@v1
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Configure white-label settings
+        env:
+          APP_NAME: ${{ env.APP_NAME }}
+          BUNDLE_ID: ${{ env.BUNDLE_ID }}
+          APPLE_TEAM_ID: ${{ env.APPLE_TEAM_ID }}
+        run: node scripts/configure-white-label.js
+
+      - name: Build iOS app for TestFlight
+        run: |
+          eas build \
+            --platform ios \
+            --profile production \
+            --non-interactive \
+            --wait
+
+      - name: Submit to TestFlight
+        run: |
+          eas submit \
+            --platform ios \
+            --profile production \
+            --latest \
+            --non-interactive
+
+      - name: Build Complete
+        if: success()
+        run: |
+          echo "✅ iOS app successfully built and submitted to TestFlight!"
+          echo "App: ${{ env.APP_NAME }}"
+          echo "Bundle ID: ${{ env.BUNDLE_ID }}"
+          echo "Check TestFlight in 15-20 minutes."

@@ -1,0 +1,71 @@
+name: iOS TestFlight Build and Submit
+
+env:
+  EAS_BUILD_NO_EXPO_GO_WARNING: true
+
+jobs:
+  configure:
+    name: Configure White-Label App
+    runs-on: ubuntu-latest
+    outputs:
+      app-name: ${{ steps.config.outputs.app-name }}
+      bundle-id: ${{ steps.config.outputs.bundle-id }}
+    steps:
+      - uses: actions/github/checkout@v1
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '18'
+
+      - name: Configure white-label
+        id: config
+        env:
+          APP_NAME: ${{ env.APP_NAME }}
+          BUNDLE_ID: ${{ env.BUNDLE_ID }}
+          APPLE_TEAM_ID: ${{ env.APPLE_TEAM_ID }}
+        run: |
+          npm install
+          node scripts/configure-white-label.js
+          echo "app-name=$APP_NAME" >> $GITHUB_OUTPUT
+          echo "bundle-id=$BUNDLE_ID" >> $GITHUB_OUTPUT
+
+  build-ios:
+    name: Build iOS
+    needs: configure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github/checkout@v1
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build iOS
+        run: |
+          eas build \
+            --platform ios \
+            --profile production \
+            --non-interactive \
+            --wait
+
+  submit-testflight:
+    name: Submit to TestFlight
+    needs: build-ios
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github/checkout@v1
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '18'
+
+      - name: Submit to TestFlight
+        run: |
+          eas submit \
+            --platform ios \
+            --profile production \
+            --latest \
+            --non-interactive
