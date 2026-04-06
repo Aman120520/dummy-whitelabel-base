@@ -27,7 +27,7 @@
       "ios": {
         "credentialsSource": "remote",
         "enterpriseProvisioning": "universal",
-        "distribution": "app-store"
+        "distribution": "store"
       }
     }
   },
@@ -35,9 +35,7 @@
     "production": {
       "ios": {
         "appleTeamId": "$APPLE_TEAM_ID",
-        "appleId": "$APPLE_ID",
-        "appleIdPassword": "$APPLE_ID_PASSWORD",
-        "appleAppSpecificPassword": "$APPLE_APP_SPECIFIC_PASSWORD"
+        "appleId": "$APPLE_ID"
       }
     }
   }
