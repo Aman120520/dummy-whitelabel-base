@@ -333,7 +333,12 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || `HTTP ${response.status}`);
+                    console.error('API Response Error:', data);
+                    let errorMsg = data.error || `HTTP ${response.status}`;
+                    if (data.details) {
+                        errorMsg += `: ${data.details}`;
+                    }
+                    throw new Error(errorMsg);
                 }
 
                 const runId = data.runId;
