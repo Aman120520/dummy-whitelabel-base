@@ -45,6 +45,27 @@ jobs:
           BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      - name: Setup Apple credentials
+        run: |
+          # Create the credentials.json that EAS expects
+          cat > credentials.json << 'EOF'
+          {
+            "952733e3-51a5-40b4-8554-eaac3a5a6390": {
+              "ios": {
+                "distribution": {
+                  "appleTeamId": "${{ secrets.APPLE_TEAM_ID }}",
+                  "appleAppStoreConnectKeyId": "${{ secrets.APPLE_APP_STORE_CONNECT_KEY_ID }}",
+                  "appleAppStoreConnectIssuerId": "${{ secrets.APPLE_APP_STORE_CONNECT_ISSUER_ID }}",
+                  "appleAppStoreConnectPrivateKeyPath": "AuthKey_${{ secrets.APPLE_APP_STORE_CONNECT_KEY_ID }}.p8"
+                }
+              }
+            }
+          }
+          EOF
+
+          # Create the private key file
+          echo -e "${{ secrets.APPLE_APP_STORE_CONNECT_PRIVATE_KEY }}" > "AuthKey_${{ secrets.APPLE_APP_STORE_CONNECT_KEY_ID }}.p8"
+
       - name: Build iOS app with EAS
         run: eas build --platform ios --profile production --non-interactive --wait
         env:

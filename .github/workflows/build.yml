@@ -1,4 +1,4 @@
-name: Generate Fast iOS App
+name: Build and Submit to TestFlight
 
 on:
   workflow_dispatch:
@@ -12,12 +12,12 @@ on:
         required: true
         type: string
       clientId:
-        description: 'Client / Organization ID'
+        description: 'Client/Organization ID'
         required: true
         type: string
 
 jobs:
-  build:
+  build_and_submit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,7 +29,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Setup Expo/EAS
+      - name: Setup EAS CLI
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
@@ -38,14 +38,35 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Apply white-label config
+      - name: Configure white-label app
         run: node scripts/configure-white-label.js
         env:
           APP_NAME: ${{ github.event.inputs.appName }}
           BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-      - name: Build iOS app
+      - name: Setup Apple credentials
+        run: |
+          # Create the credentials.json that EAS expects
+          cat > credentials.json << 'EOF'
+          {
+            "952733e3-51a5-40b4-8554-eaac3a5a6390": {
+              "ios": {
+                "distribution": {
+                  "appleTeamId": "${{ secrets.APPLE_TEAM_ID }}",
+                  "appleAppStoreConnectKeyId": "${{ secrets.APPLE_APP_STORE_CONNECT_KEY_ID }}",
+                  "appleAppStoreConnectIssuerId": "${{ secrets.APPLE_APP_STORE_CONNECT_ISSUER_ID }}",
+                  "appleAppStoreConnectPrivateKeyPath": "AuthKey_${{ secrets.APPLE_APP_STORE_CONNECT_KEY_ID }}.p8"
+                }
+              }
+            }
+          }
+          EOF
+
+          # Create the private key file
+          echo -e "${{ secrets.APPLE_APP_STORE_CONNECT_PRIVATE_KEY }}" > "AuthKey_${{ secrets.APPLE_APP_STORE_CONNECT_KEY_ID }}.p8"
+
+      - name: Build iOS app with EAS
         run: eas build --platform ios --profile production --non-interactive --wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -55,10 +76,10 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Build Summary
+      - name: Success
         if: success()
         run: |
-          echo "✅ iOS app built and submitted to TestFlight!"
+          echo "✅ Build and TestFlight submission successful!"
           echo "App: ${{ github.event.inputs.appName }}"
           echo "Bundle ID: ${{ github.event.inputs.bundleId }}"
-          echo "Check TestFlight in ~15-20 minutes for the build."
+          echo "Check TestFlight in ~15-20 minutes"
