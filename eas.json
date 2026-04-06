@@ -25,8 +25,9 @@
         "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
       },
       "ios": {
-        "credentialsSource": "remote",
-        "enterpriseProvisioning": "universal"
+        "credentialsSource": "local",
+        "enterpriseProvisioning": "universal",
+        "distribution": "app-store"
       }
     }
   },
