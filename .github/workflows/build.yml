@@ -1,4 +1,4 @@
-name: Build and Deploy to TestFlight
+name: Generate Fast iOS App
 
 on:
   workflow_dispatch:
@@ -12,17 +12,13 @@ on:
         required: true
         type: string
       clientId:
-        description: 'Client/Organization ID'
+        description: 'Client / Organization ID'
         required: true
         type: string
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    environment: production
-    permissions:
-      contents: read
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,48 +29,36 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Setup Expo/EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
       - name: Install dependencies
         run: npm install
 
-      - name: Install EAS CLI
-        run: npm install -g eas-cli@latest
-
-      - name: Configure white-label app
+      - name: Apply white-label config
         run: node scripts/configure-white-label.js
         env:
           APP_NAME: ${{ github.event.inputs.appName }}
           BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-      - name: Build iOS app with EAS
-        run: |
-          eas build \
-            --platform ios \
-            --profile production \
-            --non-interactive \
-            --wait
+      - name: Build iOS app
+        run: eas build --platform ios --profile production --non-interactive --wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Submit to TestFlight
-        run: |
-          eas submit \
-            --platform ios \
-            --profile production \
-            --latest \
-            --non-interactive
+        run: eas submit --platform ios --profile production --latest --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          ASC_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ASC_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          ASC_API_KEY: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
 
       - name: Build Summary
         if: success()
         run: |
-          echo "✅ Build and TestFlight submission successful!"
+          echo "✅ iOS app built and submitted to TestFlight!"
           echo "App: ${{ github.event.inputs.appName }}"
           echo "Bundle ID: ${{ github.event.inputs.bundleId }}"
+          echo "Check TestFlight in ~15-20 minutes for the build."
