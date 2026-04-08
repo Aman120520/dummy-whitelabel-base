@@ -29,13 +29,22 @@ try {
     fs.mkdirSync(easDir, { recursive: true });
   }
 
+  // Read bundle ID from app.json
+  const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+  const bundleId = appJson.expo.ios?.bundleIdentifier;
+
+  if (!bundleId) {
+    console.error('❌ Bundle ID not found in app.json');
+    process.exit(1);
+  }
+
   const p8Content = Buffer.from(APP_STORE_CONNECT_P8_BASE64, 'base64').toString('utf-8');
   fs.writeFileSync(p8Path, p8Content);
   fs.chmodSync(p8Path, 0o600);
 
   const credentials = {
     ios: {
-      [APPLE_TEAM_ID]: {
+      [bundleId]: {
         appleTeamId: APPLE_TEAM_ID,
         appleAppStoreConnectPrivateKeyPath: p8Path,
         appleAppStoreConnectKeyId: APP_STORE_CONNECT_KEY_ID,
@@ -48,6 +57,8 @@ try {
   fs.chmodSync(credentialsPath, 0o600);
 
   console.log('✅ iOS credentials set up successfully');
+  console.log(`   Bundle ID: ${bundleId}`);
+  console.log(`   Team ID: ${APPLE_TEAM_ID}`);
   console.log(`   P8 key: ${p8Path}`);
   console.log(`   Credentials: ${credentialsPath}`);
 } catch (error) {
