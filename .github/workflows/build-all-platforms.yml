@@ -63,6 +63,15 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
+      - name: Create iOS app on App Store Connect
+        run: node scripts/create-app-store-app.js
+        env:
+          APP_NAME: ${{ github.event.inputs.appName }}
+          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
+
       - name: Verify EXPO Token
         run: |
           echo "Testing EXPO_TOKEN authentication..."
@@ -134,6 +143,13 @@ jobs:
           BUNDLE_ID: ${{ github.event.inputs.androidPackage }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
+
+      - name: Create Android app on Google Play Console
+        run: node scripts/create-google-play-app.js
+        env:
+          APP_NAME: ${{ github.event.inputs.appName }}
+          PACKAGE_NAME: ${{ github.event.inputs.androidPackage }}
+          GOOGLE_PLAY_CREDENTIALS: ${{ secrets.GOOGLE_PLAY_CREDENTIALS_PATH }}
 
       - name: Build APK
         run: |
