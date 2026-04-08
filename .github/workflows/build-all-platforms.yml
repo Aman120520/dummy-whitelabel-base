@@ -27,6 +27,10 @@ on:
         description: 'Client/Organization ID'
         required: true
         type: string
+      easProjectId:
+        description: 'EAS Project ID for this client'
+        required: false
+        type: string
 
 jobs:
   build_ios:
@@ -57,6 +61,7 @@ jobs:
           APP_NAME: ${{ github.event.inputs.appName }}
           BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
       - name: Verify EXPO Token
         run: |
@@ -137,6 +142,7 @@ jobs:
           APP_NAME: ${{ github.event.inputs.appName }}
           BUNDLE_ID: ${{ github.event.inputs.androidPackage }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
       - name: Prebuild Android native project
         run: |

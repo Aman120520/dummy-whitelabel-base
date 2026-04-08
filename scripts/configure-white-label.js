@@ -5,10 +5,15 @@ const fs = require('fs');
 const APP_NAME = process.env.APP_NAME;
 const BUNDLE_ID = process.env.BUNDLE_ID;
 const APPLE_TEAM_ID = process.env.APPLE_TEAM_ID;
+const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID;
 
 if (!APP_NAME || !BUNDLE_ID || !APPLE_TEAM_ID) {
   console.error('❌ Missing env vars: APP_NAME, BUNDLE_ID, APPLE_TEAM_ID');
   process.exit(1);
+}
+
+if (!EAS_PROJECT_ID) {
+  console.warn('⚠️  Warning: EAS_PROJECT_ID not provided, using existing project ID');
 }
 
 console.log('🔧 Configuring white-label app...');
@@ -19,6 +24,19 @@ appJson.expo.name = APP_NAME;
 appJson.expo.ios = appJson.expo.ios || {};
 appJson.expo.ios.bundleIdentifier = BUNDLE_ID;
 appJson.expo.ios.appleTeamId = APPLE_TEAM_ID;
+
+// Update EAS Project ID if provided
+if (EAS_PROJECT_ID) {
+  appJson.expo.extra = appJson.expo.extra || {};
+  appJson.expo.extra.eas = appJson.expo.extra.eas || {};
+  appJson.expo.extra.eas.projectId = EAS_PROJECT_ID;
+
+  // Also update the updates URL to use the new project ID
+  appJson.expo.updates = appJson.expo.updates || {};
+  appJson.expo.updates.url = `https://u.expo.dev/${EAS_PROJECT_ID}`;
+
+  console.log(`✅ Updated EAS Project ID: ${EAS_PROJECT_ID}`);
+}
 
 fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
 console.log(`✅ Updated app.json: ${APP_NAME} (${BUNDLE_ID})`);

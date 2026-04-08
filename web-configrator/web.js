@@ -16,6 +16,7 @@ export default function App() {
         clientId: '4565',
         bundleId: 'com.laundry.tayyar24',
         androidPackage: 'com.laundry.tayyar24',
+        easProjectId: '952733e3-51a5-40b4-8554-eaac3a5a6390', // Client-specific EAS project
     });
 
     const [logs, setLogs] = useState([]);
@@ -73,7 +74,12 @@ export default function App() {
             addLog(`Client ID: ${pipeline.clientId}`);
 
             const platform = getBuildPlatform();
-            const inputs = { platform, clientId: pipeline.clientId, appName: appTheme.appName };
+            const inputs = {
+                platform,
+                clientId: pipeline.clientId,
+                appName: appTheme.appName,
+                easProjectId: pipeline.easProjectId
+            };
 
             if (platform === 'ios' || platform === 'both') {
                 inputs.bundleId = pipeline.bundleId.toLowerCase();
@@ -86,6 +92,7 @@ export default function App() {
             }
 
             addLog(`App Name: ${appTheme.appName}`);
+            addLog(`EAS Project ID: ${pipeline.easProjectId}`);
 
             addLog("Sending workflow dispatch request...");
 
@@ -237,6 +244,15 @@ export default function App() {
                         value={pipeline.clientId}
                         onChange={(e) => setPipeline({ ...pipeline, clientId: e.target.value })}
                     />
+
+                    <label style={styles.label}>EAS Project ID</label>
+                    <input
+                        style={styles.input}
+                        value={pipeline.easProjectId}
+                        onChange={(e) => setPipeline({ ...pipeline, easProjectId: e.target.value })}
+                        placeholder="952733e3-51a5-40b4-8554-eaac3a5a6390"
+                    />
+                    <p style={{ ...styles.subText, marginTop: '4px' }}>Use client's own EAS project for separate TestFlight app</p>
 
                     <label style={styles.label}>GitHub PAT (Token)</label>
                     <input
