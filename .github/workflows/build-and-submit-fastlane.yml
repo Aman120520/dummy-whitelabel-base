@@ -34,11 +34,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Setup Fastlane
-        run: |
-          cd ios
-          bundle install
-
       - name: Configure white-label app
         run: node scripts/configure-white-label.js
         env:
@@ -51,6 +46,11 @@ jobs:
           npx expo prebuild --platform ios --clean
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Setup Fastlane
+        run: |
+          cd ios
+          bundle install
 
       - name: Build with Fastlane
         run: |
