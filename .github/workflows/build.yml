@@ -43,22 +43,6 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Setup iOS Credentials
-        run: node scripts/create-credentials-file.js
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          APP_STORE_CONNECT_P8_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
-
-      - name: Verify credentials file
-        run: |
-          echo "Checking credentials.json..."
-          cat ~/.eas/credentials.json
-          echo ""
-          echo "Checking P8 key exists..."
-          ls -lh ~/.eas/apple-app-store-connect-key.p8
-
       - name: Configure white-label app
         run: node scripts/configure-white-label.js
         env:
