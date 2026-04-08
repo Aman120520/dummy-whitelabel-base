@@ -1,0 +1,49 @@
+═══════════════════════════════════════════════════════════════════════════════
+                          🎯 WHAT TO DO RIGHT NOW
+═══════════════════════════════════════════════════════════════════════════════
+
+Your project is 95% done. Just one final step:
+
+STEP 1: Open Terminal on your Mac
+────────────────────────────────────
+
+  Command: (just open the Terminal app)
+
+
+STEP 2: Navigate to your project
+────────────────────────────────────
+
+  $ cd /Users/amanvagadiya/Desktop/web-donfig/dummy-whitelabel-base
+
+
+STEP 3: Run the interactive build
+────────────────────────────────────
+
+  $ eas build --platform ios --profile production --interactive
+
+  ⏳ Wait 15-20 minutes
+
+
+STEP 4: When done, push to GitHub
+────────────────────────────────────
+
+  $ git push origin main
+
+
+STEP 5: GitHub Actions will now work!
+────────────────────────────────────
+
+  Go to: https://github.com/Aman120520/dummy-whitelabel-base/actions
+  
+  Click: Build and Submit to TestFlight
+  
+  Run: Your workflow with your app details
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+That's it! 
+
+After running that one command on your Mac, GitHub Actions will work forever.
+
+═══════════════════════════════════════════════════════════════════════════════
