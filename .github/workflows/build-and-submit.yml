@@ -57,9 +57,26 @@ jobs:
           echo "Current eas.json configuration:"
           cat eas.json | jq '.'
 
+      - name: Check Credentials Status
+        run: |
+          echo "Checking EAS credentials availability..."
+          echo "Project: dummy-whitelabel-base"
+          echo "Owner: wesencedev"
+          # Try to get credentials info (will fail gracefully in non-interactive)
+          eas credentials --non-interactive || echo "Note: eas credentials requires interactive mode, but stored credentials will be used"
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
       - name: Build iOS app with EAS
         run: |
-          echo "Starting EAS build..."
+          echo "=========================================="
+          echo "Starting EAS build with production profile"
+          echo "=========================================="
+          echo "Build Profile: production"
+          echo "Platform: iOS"
+          echo "Wait for build: true"
+          echo "Using remote credentials: true"
+          echo ""
           eas build --platform ios --profile production --wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
