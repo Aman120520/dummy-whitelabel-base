@@ -1,4 +1,4 @@
-name: Build and Submit to TestFlight (Fastlane Match)
+name: Build and Submit to TestFlight (Fastlane)
 
 on:
   workflow_dispatch:
@@ -9,10 +9,6 @@ on:
         type: string
       bundleId:
         description: 'iOS Bundle ID (e.g., com.company.appname)'
-        required: true
-        type: string
-      clientId:
-        description: 'Client/Organization ID'
         required: true
         type: string
 
@@ -39,16 +35,7 @@ jobs:
         run: npm install
 
       - name: Setup Fastlane
-        run: |
-          gem install fastlane -NV
-          cd ios && fastlane update_fastlane
-
-      - name: Checkout Match repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ secrets.FASTLANE_MATCH_REPO }}
-          token: ${{ secrets.MATCH_GITHUB_TOKEN }}
-          path: match-repo
+        run: gem install fastlane -NV
 
       - name: Configure white-label app
         run: node scripts/configure-white-label.js
@@ -57,7 +44,13 @@ jobs:
           BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-      - name: Build and submit with Fastlane
+      - name: Generate native iOS project
+        run: |
+          npx expo prebuild --platform ios --clean
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build with Fastlane
         run: |
           cd ios
           fastlane build_and_submit \
@@ -67,9 +60,7 @@ jobs:
         env:
           FASTLANE_USER: ${{ secrets.FASTLANE_USER }}
           FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
-          FASTLANE_MATCH_REPO: ${{ secrets.FASTLANE_MATCH_REPO }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
 
       - name: Success
         if: success()
