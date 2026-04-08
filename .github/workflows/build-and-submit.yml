@@ -52,31 +52,22 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Check EAS Credentials
-        run: |
-          echo "Checking stored EAS credentials..."
-          eas credentials || true
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
       - name: Validate eas.json
         run: |
-          echo "Validating eas.json..."
-          cat eas.json
-          echo "---"
-          node -e "console.log(JSON.stringify(require('./eas.json'), null, 2))"
+          echo "Current eas.json configuration:"
+          cat eas.json | jq '.'
 
       - name: Build iOS app with EAS
         run: |
-          echo "Starting EAS build with detailed logging..."
-          eas build --platform ios --profile production --wait --verbose
+          echo "Starting EAS build..."
+          eas build --platform ios --profile production --wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Submit to TestFlight
         run: |
           echo "Starting TestFlight submission..."
-          eas submit --platform ios --profile production --latest --verbose
+          eas submit --platform ios --profile production --latest
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 

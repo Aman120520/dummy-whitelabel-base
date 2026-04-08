@@ -33,17 +33,13 @@ easJson.build.production.ios = easJson.build.production.ios || {};
 easJson.build.production.ios.credentialsSource = easJson.build.production.ios.credentialsSource || 'local';
 easJson.build.production.ios.distribution = easJson.build.production.ios.distribution || 'store';
 
-// Update submit config
+// Update submit config - preserve existing config and only update team ID
 easJson.submit = easJson.submit || {};
 easJson.submit.production = easJson.submit.production || {};
 easJson.submit.production.ios = easJson.submit.production.ios || {};
 
-// Clean up old ascAppId
-delete easJson.submit.production.ios.ascAppId;
-
+// Only update appleTeamId, preserve all other submit config (ascAppId, etc)
 easJson.submit.production.ios.appleTeamId = APPLE_TEAM_ID;
-easJson.submit.production.ios.appName = APP_NAME;
-easJson.submit.production.ios.sku = BUNDLE_ID;
 
 fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
 console.log(`✅ Updated eas.json with submission config`);
