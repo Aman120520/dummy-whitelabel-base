@@ -1,122 +1,142 @@
 # GitHub Actions EAS Build & Submit Setup Guide
 
-This guide explains how to set up GitHub Actions secrets for automated iOS builds and TestFlight submissions using EAS.
+This guide explains how to set up GitHub Actions for automated iOS builds and TestFlight submissions using EAS.
+
+## ⚠️ Important: Use EAS Credentials Store (Not Local Keys)
+
+EAS stores credentials on their servers, not locally. When you run `eas build` interactively, EAS saves your Apple credentials remotely. GitHub Actions will use these stored credentials automatically—**no local API keys needed in GitHub secrets**.
 
 ## Prerequisites
 
-- Access to Apple Developer Account
-- An App Store Connect API Key created in your developer account
-- EAS project initialized
+1. **EAS Credentials Already Set Up**: You must have already built the app at least once interactively (which you have done)
+   - This stores your Apple credentials on EAS servers
+   - Run: `eas credentials` to verify they're stored
 
-## GitHub Secrets Setup
+2. **EXPO_TOKEN**: Only secret needed in GitHub
 
-You need to add the following secrets to your GitHub repository:
+## Step 1: Verify EAS Credentials Are Stored
 
-### 1. EXPO_TOKEN
-- **Description**: Authentication token for EAS services
-- **How to get**: 
-  - Run `eas whoami` to verify you're logged in
-  - Run `eas token create --name github-actions` to generate a token
-  - Copy the token value
+Run this locally to confirm:
 
-### 2. APPLE_API_KEY_ID
-- **Description**: Your App Store Connect API Key ID
-- **How to get**:
-  - Go to App Store Connect → Users and Access → Keys
-  - Create a new key or find your existing "GitHub Actions Configurator" key
-  - Copy the Key ID (looks like: `2MFD4KXKR7`)
+```bash
+eas credentials
+```
 
-### 3. APPLE_API_ISSUER_ID
-- **Description**: Your App Store Connect Issuer ID
-- **How to get**:
-  - Go to App Store Connect → Users and Access → Keys
-  - The Issuer ID is displayed at the top of the page
-  - Copy the Issuer ID (looks like: `a1b2c3d4-e5f6-7890-abcd-ef1234567890`)
+You should see output like:
+```
+Credentials for @wesencedev/dummy-whitelabel-base:
+  iOS:
+    ✔ Distribution Certificate
+    ✔ Provisioning Profile
+```
 
-### 4. APPLE_API_KEY_CONTENT
-- **Description**: The actual API key file content (.p8)
-- **How to get**:
-  1. Go to App Store Connect → Users and Access → Keys
-  2. Click the download button next to your API key
-  3. You'll get a `.p8` file
-  4. Open the file in a text editor
-  5. Copy the entire content (including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`)
+If credentials are missing, run an interactive build first:
 
-### 5. APPLE_TEAM_ID (Optional)
-- **Description**: Your Apple Team ID
-- **How to get**: Found in your Apple Developer Account settings or in Xcode
+```bash
+eas build --platform ios --profile production --interactive
+```
 
-## Adding Secrets to GitHub
+This will prompt you to authenticate with Apple and save the credentials on EAS servers.
 
-1. Go to your repository on GitHub
-2. Click **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Add each secret with the appropriate name and value
-5. Repeat for all 4 required secrets
+## Step 2: Create EXPO_TOKEN GitHub Secret
 
-## Workflow Behavior
+1. Generate an EAS token locally:
+   ```bash
+   eas token create --name github-actions
+   ```
 
-The workflow (`build-and-submit.yml`) does the following:
+2. Go to your GitHub repository:
+   - Settings → Secrets and variables → Actions
+   - Click **New repository secret**
+   - Name: `EXPO_TOKEN`
+   - Value: Paste the token you just created
 
-1. Checks out your code
-2. Sets up Node.js and EAS CLI
-3. Installs dependencies
-4. Configures the white-label app with your specified app name and bundle ID
-5. Sets up Apple API credentials
-6. Builds the iOS app with EAS (increments build number automatically)
-7. Submits to TestFlight
-8. Shows success message
+That's it! Only **1 secret** needed.
 
-## Manual Workflow Dispatch
+## Step 3: Update eas.json (Already Done)
 
-To trigger the workflow:
+Your `eas.json` is already configured with:
 
-1. Go to your repository on GitHub
-2. Click **Actions** tab
-3. Select **Build and Submit to TestFlight**
-4. Click **Run workflow**
-5. Fill in:
-   - **App Name**: The display name of your app
-   - **Bundle ID**: iOS bundle identifier (e.g., `com.wesence.dummywhitelabelbase`)
-   - **Client/Organization ID**: Your client identifier
+```json
+{
+  "build": {
+    "production": {
+      "ios": {
+        "credentialsSource": "remote",
+        "distribution": "store"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6761165135",
+        "appleTeamId": "2H9MCN975Q"
+      }
+    }
+  }
+}
+```
+
+## Step 4: Run the Workflow
+
+1. Go to GitHub → **Actions** tab
+2. Select **Build and Submit to TestFlight**
+3. Click **Run workflow**
+4. Fill in the inputs:
+   - App Name: `dummy-whitelabel-base`
+   - Bundle ID: `com.wesence.dummywhitelabelbase`
+   - Client/Organization ID: Your client identifier
+
+The workflow will:
+- ✅ Authenticate via EXPO_TOKEN
+- ✅ Use EAS-stored Apple credentials (no API keys needed)
+- ✅ Build the iOS app
+- ✅ Auto-increment build number
+- ✅ Submit to TestFlight
+
+## Workflow Steps
+
+1. Checkout code
+2. Setup Node.js & EAS CLI
+3. Install dependencies
+4. Configure white-label app
+5. Build with EAS (uses remote credentials)
+6. Submit to TestFlight (uses remote credentials)
 
 ## Troubleshooting
 
-### Build fails with "credentials not found"
-- Ensure all 4 secrets are set correctly in GitHub
-- Verify the APPLE_API_KEY_CONTENT has proper formatting (multiline key)
+### "Credentials are not set up"
+- **Solution**: Run `eas build --platform ios --profile production --interactive` locally
+- This will prompt for Apple login and save credentials on EAS
+- Then try GitHub workflow again
 
 ### "ascAppId not found"
-- Make sure your ASC App ID (6761165135) is in `eas.json` under `submit.production.ios.ascAppId`
+- Verify `ascAppId: "6761165135"` is in `eas.json` under `submit.production.ios`
 
-### Build queued but never starts
-- Check if your EAS account is on a paid plan (free tier has slower queues)
-- Check EAS dashboard at https://expo.dev for build status
+### Build still fails in GitHub but works locally
+- Ensure `EXPO_TOKEN` is set correctly in GitHub secrets
+- Test token locally: `EXPO_TOKEN=<token> eas whoami`
 
-### Submission fails
-- Verify the build completed successfully before submission
-- Check that TestFlight is enabled for your app in App Store Connect
+### Build takes forever or stays queued
+- Check EAS dashboard: https://expo.dev/accounts/wesencedev/projects/dummy-whitelabel-base/builds
+- Free tier has slow queues; consider upgrading
 
-## Key Differences from Manual Terminal Commands
+## How It Works
 
-The GitHub Actions workflow automates:
+```
+Local (Interactive):
+  eas build → prompts Apple login → stores credentials on EAS servers
 
-1. **Interactive Apple login** → Uses API key credentials stored in secrets
-2. **Manual build number increment** → Done by EAS automatically (configured in eas.json)
-3. **Environment variable loading** → Uses GitHub secrets instead of terminal env vars
+GitHub Actions (Non-Interactive):
+  EXPO_TOKEN → authenticates with EAS → retrieves stored credentials → builds
+```
 
-## Environment Variables
-
-The workflow sets these automatically:
-
-- `EXPO_TOKEN`: From GitHub secrets
-- `APPLE_API_KEY_ID`: From GitHub secrets
-- `APPLE_API_ISSUER_ID`: From GitHub secrets
-- `EAS_BUILD_NO_EXPO_GO_WARNING`: Set in eas.json
+The key difference: You're **not storing Apple credentials in GitHub**. You're storing an EAS token that lets GitHub access credentials already stored on EAS servers.
 
 ## Notes
 
-- Build takes 10-20 minutes depending on EAS queue
-- TestFlight submission is automatic once build completes
 - Build number auto-increments via `"autoIncrement": true` in eas.json
-- Uses macOS runner for better compatibility with Apple tooling
+- Build takes 10-20 minutes depending on queue
+- TestFlight submission is automatic once build completes
+- Uses macOS runner for best compatibility with Apple build tools

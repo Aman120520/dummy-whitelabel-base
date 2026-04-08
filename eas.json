@@ -12,14 +12,16 @@
       },
       "ios": {
         "credentialsSource": "remote",
-        "distribution": "store"
+        "distribution": "store",
+        "enterpriseProvisioning": "off"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "6761165135"
+        "ascAppId": "6761165135",
+        "appleTeamId": "2H9MCN975Q"
       }
     }
   }
