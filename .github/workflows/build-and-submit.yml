@@ -18,7 +18,7 @@ on:
 
 jobs:
   build_and_submit:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -38,11 +38,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Initialize EAS project
-        run: eas init --id 952733e3-51a5-40b4-8554-eaac3a5a6390 --non-interactive
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
       - name: Configure white-label app
         run: node scripts/configure-white-label.js
         env:
@@ -50,15 +45,24 @@ jobs:
           BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      - name: Setup Apple Credentials
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "${{ secrets.APPLE_API_KEY_CONTENT }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+
       - name: Build iOS app with EAS
         run: eas build --platform ios --profile production --non-interactive --wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
 
       - name: Submit to TestFlight
         run: eas submit --platform ios --profile production --latest --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
 
       - name: Success
         if: success()
