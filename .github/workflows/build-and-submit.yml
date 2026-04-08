@@ -45,13 +45,38 @@ jobs:
           BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      - name: Verify EXPO Token
+        run: |
+          echo "Testing EXPO_TOKEN authentication..."
+          eas whoami
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Check EAS Credentials
+        run: |
+          echo "Checking stored EAS credentials..."
+          eas credentials || true
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Validate eas.json
+        run: |
+          echo "Validating eas.json..."
+          cat eas.json
+          echo "---"
+          node -e "console.log(JSON.stringify(require('./eas.json'), null, 2))"
+
       - name: Build iOS app with EAS
-        run: eas build --platform ios --profile production --wait
+        run: |
+          echo "Starting EAS build with detailed logging..."
+          eas build --platform ios --profile production --wait --verbose
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Submit to TestFlight
-        run: eas submit --platform ios --profile production --latest
+        run: |
+          echo "Starting TestFlight submission..."
+          eas submit --platform ios --profile production --latest --verbose
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
