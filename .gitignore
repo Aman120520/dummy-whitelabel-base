@@ -12,6 +12,8 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+android/
+ios/
 
 expo-env.d.ts
 .expo
