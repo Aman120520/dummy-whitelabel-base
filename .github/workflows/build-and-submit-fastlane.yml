@@ -24,6 +24,7 @@ jobs:
         with:
           ruby-version: '3.3'
           bundler-cache: true
+          working-directory: ios
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -35,7 +36,9 @@ jobs:
         run: npm install
 
       - name: Setup Fastlane
-        run: gem install fastlane -NV
+        run: |
+          cd ios
+          bundle install
 
       - name: Configure white-label app
         run: node scripts/configure-white-label.js
@@ -53,7 +56,7 @@ jobs:
       - name: Build with Fastlane
         run: |
           cd ios
-          fastlane build_and_submit \
+          bundle exec fastlane build_and_submit \
             app_name:"${{ github.event.inputs.appName }}" \
             bundle_id:"${{ github.event.inputs.bundleId }}" \
             apple_team_id:"${{ secrets.APPLE_TEAM_ID }}"
