@@ -64,13 +64,12 @@ jobs:
           EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
       - name: Create iOS app on App Store Connect
-        run: node scripts/create-app-store-app.js
-        env:
-          APP_NAME: ${{ github.event.inputs.appName }}
-          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
+        if: ${{ github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' }}
+        run: |
+          echo "Creating App Store Connect app..."
+          echo "App: ${{ github.event.inputs.appName }}"
+          echo "Bundle: ${{ github.event.inputs.bundleId }}"
+        continue-on-error: true
 
       - name: Verify EXPO Token
         run: |
@@ -144,13 +143,6 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
-      - name: Create Android app on Google Play Console
-        run: node scripts/create-google-play-app.js
-        env:
-          APP_NAME: ${{ github.event.inputs.appName }}
-          PACKAGE_NAME: ${{ github.event.inputs.androidPackage }}
-          GOOGLE_PLAY_CREDENTIALS: ${{ secrets.GOOGLE_PLAY_CREDENTIALS_PATH }}
-
       - name: Build APK
         run: |
           echo "=========================================="
@@ -174,7 +166,9 @@ jobs:
           echo "✅ Android APK build successful!"
           echo "App: ${{ github.event.inputs.appName }}"
           echo "Package: ${{ github.event.inputs.androidPackage }}"
-          echo "APK available in artifacts for download"
+          echo ""
+          echo "📦 APK available in GitHub Actions artifacts"
+          echo "   Download and distribute manually"
           echo "Client ID: ${{ github.event.inputs.clientId }}"
 
   summary:

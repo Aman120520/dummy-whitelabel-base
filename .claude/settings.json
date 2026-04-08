@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m 'Remove prebuild commands from iOS and Android workflows:*)"
+      "Bash(git commit -m 'Remove prebuild commands from iOS and Android workflows:*)",
+      "Bash(git commit -m 'Add comprehensive white-label client setup guide:*)",
+      "Bash(git commit -m 'Implement fully automated white-label app creation system:*)"
     ]
   }
 }
