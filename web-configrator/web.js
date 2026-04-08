@@ -15,6 +15,7 @@ export default function App() {
         pat: '',
         clientId: '4565',
         bundleId: 'com.laundry.tayyar24',
+        androidPackage: 'com.laundry.tayyar24',
     });
 
     const [logs, setLogs] = useState([]);
@@ -42,10 +43,18 @@ export default function App() {
             return;
         }
 
+        const packageRegex = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/;
+
         if (buildOption === 'testflight' || buildOption === 'both') {
-            const bundleRegex = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/;
-            if (!bundleRegex.test(pipeline.bundleId)) {
-                alert("Invalid Bundle ID! Format should be reverse-DNS: 'com.company.appname'\n\n❌ Only letters, numbers, hyphens (-), and periods (.) are allowed for iOS.");
+            if (!packageRegex.test(pipeline.bundleId)) {
+                alert("Invalid iOS Bundle ID! Format should be reverse-DNS: 'com.company.appname'\n\n❌ Only letters, numbers, hyphens (-), and periods (.) are allowed.");
+                return;
+            }
+        }
+
+        if (buildOption === 'apk' || buildOption === 'both') {
+            if (!packageRegex.test(pipeline.androidPackage)) {
+                alert("Invalid Android Package ID! Format should be reverse-DNS: 'com.company.appname'\n\n❌ Only letters, numbers, hyphens (-), and periods (.) are allowed.");
                 return;
             }
         }
@@ -64,14 +73,19 @@ export default function App() {
             addLog(`Client ID: ${pipeline.clientId}`);
 
             const platform = getBuildPlatform();
-            const inputs = { platform, clientId: pipeline.clientId };
+            const inputs = { platform, clientId: pipeline.clientId, appName: appTheme.appName };
 
             if (platform === 'ios' || platform === 'both') {
-                inputs.appName = appTheme.appName;
                 inputs.bundleId = pipeline.bundleId.toLowerCase();
-                addLog(`App Name: ${appTheme.appName}`);
-                addLog(`Bundle ID: ${pipeline.bundleId}`);
+                addLog(`iOS Bundle ID: ${pipeline.bundleId}`);
             }
+
+            if (platform === 'android' || platform === 'both') {
+                inputs.androidPackage = pipeline.androidPackage.toLowerCase();
+                addLog(`Android Package: ${pipeline.androidPackage}`);
+            }
+
+            addLog(`App Name: ${appTheme.appName}`);
 
             addLog("Sending workflow dispatch request...");
 
@@ -233,24 +247,36 @@ export default function App() {
                         onChange={(e) => setPipeline({ ...pipeline, pat: e.target.value })}
                     />
 
+                    <div style={styles.divider}></div>
+                    <label style={styles.label}>📱 App Configuration</label>
+
+                    <label style={styles.label}>App Name</label>
+                    <input
+                        style={styles.input}
+                        value={appTheme.appName}
+                        onChange={(e) => setAppTheme({ ...appTheme, appName: e.target.value })}
+                        placeholder="My App Name"
+                    />
+
                     {(buildOption === 'testflight' || buildOption === 'both') && (
                         <>
-                            <div style={styles.divider}></div>
-                            <label style={styles.label}>📱 iOS Configuration (TestFlight)</label>
-
-                            <label style={styles.label}>App Name</label>
-                            <input
-                                style={styles.input}
-                                value={appTheme.appName}
-                                onChange={(e) => setAppTheme({ ...appTheme, appName: e.target.value })}
-                                placeholder="My App Name"
-                            />
-
-                            <label style={styles.label}>Bundle ID</label>
+                            <label style={styles.label}>iOS Bundle ID</label>
                             <input
                                 style={styles.input}
                                 value={pipeline.bundleId}
                                 onChange={(e) => setPipeline({ ...pipeline, bundleId: e.target.value })}
+                                placeholder="com.company.appname"
+                            />
+                        </>
+                    )}
+
+                    {(buildOption === 'apk' || buildOption === 'both') && (
+                        <>
+                            <label style={styles.label}>Android Package ID</label>
+                            <input
+                                style={styles.input}
+                                value={pipeline.androidPackage}
+                                onChange={(e) => setPipeline({ ...pipeline, androidPackage: e.target.value })}
                                 placeholder="com.company.appname"
                             />
                         </>
