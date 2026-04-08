@@ -10,59 +10,70 @@ export default function App() {
 
     // --- GitHub Pipeline State ---
     const [pipeline, setPipeline] = useState({
-        owner: 'Aman120520',                // Your GitHub Username
-        repo: 'dummy-whitelabel-base',      // Your GitHub Repository Name
-        pat: '',                            // Your GitHub Personal Access Token
-        clientId: '4565',                   // The Organization ID
-        bundleId: 'com.laundry.tayyar24',   // iOS Bundle ID
+        owner: 'Aman120520',
+        repo: 'dummy-whitelabel-base',
+        pat: '',
+        clientId: '4565',
+        bundleId: 'com.laundry.tayyar24',
     });
 
     const [logs, setLogs] = useState([]);
     const [isBuilding, setIsBuilding] = useState(false);
-    const [platform, setPlatform] = useState('ios'); // 'ios', 'android', or 'both'
+    const [buildOption, setBuildOption] = useState('testflight'); // 'testflight', 'apk', or 'both'
 
     const addLog = (message) => {
         setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${message}`]);
     };
 
-    // --- Trigger GitHub Actions Webhook ---
+    // --- Map build options to platform values ---
+    const getBuildPlatform = () => {
+        switch (buildOption) {
+            case 'testflight': return 'ios';
+            case 'apk': return 'android';
+            case 'both': return 'both';
+            default: return 'ios';
+        }
+    };
+
+    // --- Trigger GitHub Actions Workflow ---
     const handleTriggerPipeline = async () => {
         if (!pipeline.pat) {
             alert("Please enter your GitHub PAT first!");
             return;
         }
 
-        // FIX: iOS Bundle ID Validation Check
-        // iOS bundle IDs allow letters, numbers, hyphens (-), and periods (.)
-        const bundleRegex = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/;
-        if (!bundleRegex.test(pipeline.bundleId)) {
-            alert("Invalid Bundle ID! Format should be reverse-DNS: 'com.company.appname'\n\n❌ Only letters, numbers, hyphens (-), and periods (.) are allowed for iOS.");
-            return;
+        if (buildOption === 'testflight' || buildOption === 'both') {
+            const bundleRegex = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/;
+            if (!bundleRegex.test(pipeline.bundleId)) {
+                alert("Invalid Bundle ID! Format should be reverse-DNS: 'com.company.appname'\n\n❌ Only letters, numbers, hyphens (-), and periods (.) are allowed for iOS.");
+                return;
+            }
         }
 
-        // FIX: Automatically remove spaces, hidden newlines, and invisible unicode characters from the pasted PAT
         const cleanPat = pipeline.pat.trim().replace(/[^\x20-\x7E]/g, '');
 
         setIsBuilding(true);
-        setLogs([]); // Clear old logs
-        addLog("Preparing webhook payload...");
+        setLogs([]);
+        addLog("Preparing build request...");
 
         const githubApiUrl = `https://api.github.com/repos/${pipeline.owner}/${pipeline.repo}/actions/workflows/build-all-platforms.yml/dispatches`;
 
         try {
-            addLog(`Sending request to ${pipeline.owner}/${pipeline.repo}...`);
-            addLog(`Platform: ${platform.toUpperCase()}`);
+            addLog(`Connecting to GitHub: ${pipeline.owner}/${pipeline.repo}`);
+            addLog(`Build Type: ${buildOption.toUpperCase()}`);
+            addLog(`Client ID: ${pipeline.clientId}`);
 
-            const inputs = {
-                platform: platform, // 'ios', 'android', or 'both'
-                clientId: pipeline.clientId,
-            };
+            const platform = getBuildPlatform();
+            const inputs = { platform, clientId: pipeline.clientId };
 
-            // Only add iOS-specific inputs if building iOS
             if (platform === 'ios' || platform === 'both') {
                 inputs.appName = appTheme.appName;
                 inputs.bundleId = pipeline.bundleId.toLowerCase();
+                addLog(`App Name: ${appTheme.appName}`);
+                addLog(`Bundle ID: ${pipeline.bundleId}`);
             }
+
+            addLog("Sending workflow dispatch request...");
 
             const response = await fetch(githubApiUrl, {
                 method: 'POST',
@@ -72,27 +83,40 @@ export default function App() {
                     'X-GitHub-Api-Version': '2022-11-28',
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    ref: 'main', // The branch to run the workflow on
-                    inputs: inputs,
-                }),
+                body: JSON.stringify({ ref: 'main', inputs }),
             });
 
             if (response.ok) {
-                addLog("✅ Webhook sent successfully!");
-                if (platform === 'ios') {
-                    addLog("🎉 Build triggered! EAS is building the iOS app and will push it directly to TestFlight in ~15-20 minutes.");
-                } else if (platform === 'android') {
-                    addLog("🎉 Build triggered! Building Android APK in ~10-15 minutes.");
+                addLog("✅ Workflow dispatched successfully!");
+                addLog("");
+
+                if (buildOption === 'testflight') {
+                    addLog("📱 Building iOS App for TestFlight");
+                    addLog("⏱️  Estimated time: 15-20 minutes");
+                    addLog("1️⃣  EAS will build the native iOS project");
+                    addLog("2️⃣  Auto-submit to TestFlight");
+                    addLog("3️⃣  Notify testers in TestFlight");
+                } else if (buildOption === 'apk') {
+                    addLog("🤖 Building Android APK");
+                    addLog("⏱️  Estimated time: 10-15 minutes");
+                    addLog("1️⃣  Gradle assembles the Android release APK");
+                    addLog("2️⃣  APK available in GitHub Actions artifacts");
+                    addLog("3️⃣  Download and distribute manually");
                 } else {
-                    addLog("🎉 Build triggered! Building both iOS and Android in parallel. iOS to TestFlight in ~15-20 minutes, APK in ~10-15 minutes.");
+                    addLog("⚡ Building BOTH iOS & Android in Parallel");
+                    addLog("📱 iOS: 15-20 minutes → TestFlight");
+                    addLog("🤖 Android: 10-15 minutes → APK download");
+                    addLog("Both builds run simultaneously!");
                 }
+
+                addLog("");
+                addLog("📊 Track progress: https://github.com/" + pipeline.owner + "/" + pipeline.repo + "/actions");
             } else {
                 const errorData = await response.json();
-                addLog(`❌ Error ${response.status}: ${JSON.stringify(errorData.message)}`);
+                addLog(`❌ Error ${response.status}: ${errorData.message || 'Unknown error'}`);
             }
         } catch (error) {
-            addLog(`❌ Failed to connect to GitHub: ${error.message}`);
+            addLog(`❌ Failed: ${error.message}`);
         } finally {
             setIsBuilding(false);
         }
@@ -128,86 +152,79 @@ export default function App() {
                     </button>
                 </div>
 
-                {/* --- RIGHT COLUMN: GitHub Pipeline --- */}
+                {/* --- RIGHT COLUMN: Build Options --- */}
                 <div style={styles.card}>
                     <h2>2. Build & Deploy</h2>
-                    <p style={styles.subText}>Trigger builds for iOS (TestFlight) and/or Android (APK).</p>
+                    <p style={styles.subText}>Choose what to build and configure deployment.</p>
 
-                    <label style={styles.label}>Select Platform</label>
-                    <div style={styles.platformButtons}>
+                    <label style={styles.label}>📦 Select Build Type</label>
+                    <div style={styles.buildOptions}>
                         <button
                             style={{
-                                ...styles.platformButton,
-                                backgroundColor: platform === 'ios' ? '#2563eb' : '#e5e7eb',
-                                color: platform === 'ios' ? '#fff' : '#374151',
+                                ...styles.buildOptionButton,
+                                backgroundColor: buildOption === 'testflight' ? '#059669' : '#e5e7eb',
+                                color: buildOption === 'testflight' ? '#fff' : '#374151',
+                                borderColor: buildOption === 'testflight' ? '#059669' : '#d1d5db',
                             }}
-                            onClick={() => setPlatform('ios')}
+                            onClick={() => setBuildOption('testflight')}
                         >
-                            📱 iOS
+                            <div style={{ fontSize: '20px', marginBottom: '4px' }}>📱</div>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>TestFlight</div>
+                            <div style={{ fontSize: '11px', opacity: 0.8 }}>iOS Build</div>
                         </button>
                         <button
                             style={{
-                                ...styles.platformButton,
-                                backgroundColor: platform === 'android' ? '#2563eb' : '#e5e7eb',
-                                color: platform === 'android' ? '#fff' : '#374151',
+                                ...styles.buildOptionButton,
+                                backgroundColor: buildOption === 'apk' ? '#dc2626' : '#e5e7eb',
+                                color: buildOption === 'apk' ? '#fff' : '#374151',
+                                borderColor: buildOption === 'apk' ? '#dc2626' : '#d1d5db',
                             }}
-                            onClick={() => setPlatform('android')}
+                            onClick={() => setBuildOption('apk')}
                         >
-                            🤖 Android
+                            <div style={{ fontSize: '20px', marginBottom: '4px' }}>🤖</div>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>APK</div>
+                            <div style={{ fontSize: '11px', opacity: 0.8 }}>Android Build</div>
                         </button>
                         <button
                             style={{
-                                ...styles.platformButton,
-                                backgroundColor: platform === 'both' ? '#2563eb' : '#e5e7eb',
-                                color: platform === 'both' ? '#fff' : '#374151',
+                                ...styles.buildOptionButton,
+                                backgroundColor: buildOption === 'both' ? '#7c3aed' : '#e5e7eb',
+                                color: buildOption === 'both' ? '#fff' : '#374151',
+                                borderColor: buildOption === 'both' ? '#7c3aed' : '#d1d5db',
                             }}
-                            onClick={() => setPlatform('both')}
+                            onClick={() => setBuildOption('both')}
                         >
-                            ⚡ Both
+                            <div style={{ fontSize: '20px', marginBottom: '4px' }}>⚡</div>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>Both</div>
+                            <div style={{ fontSize: '11px', opacity: 0.8 }}>Parallel</div>
                         </button>
                     </div>
 
-                    <label style={styles.label}>Target Repo Owner</label>
+                    <div style={styles.divider}></div>
+
+                    <label style={styles.label}>🔧 GitHub Configuration</label>
+                    <label style={styles.label}>Repo Owner</label>
                     <input
                         style={styles.input}
                         value={pipeline.owner}
                         onChange={(e) => setPipeline({ ...pipeline, owner: e.target.value })}
                     />
 
-                    <label style={styles.label}>Target Repo Name</label>
+                    <label style={styles.label}>Repo Name</label>
                     <input
                         style={styles.input}
                         value={pipeline.repo}
                         onChange={(e) => setPipeline({ ...pipeline, repo: e.target.value })}
                     />
 
-                    <label style={styles.label}>Client / Organization ID</label>
+                    <label style={styles.label}>Client ID</label>
                     <input
                         style={styles.input}
                         value={pipeline.clientId}
                         onChange={(e) => setPipeline({ ...pipeline, clientId: e.target.value })}
                     />
 
-                    {(platform === 'ios' || platform === 'both') && (
-                        <>
-                            <label style={styles.label}>App Name (iOS)</label>
-                            <input
-                                style={styles.input}
-                                value={appTheme.appName}
-                                onChange={(e) => setAppTheme({ ...appTheme, appName: e.target.value })}
-                            />
-
-                            <label style={styles.label}>iOS Bundle ID</label>
-                            <input
-                                style={styles.input}
-                                value={pipeline.bundleId}
-                                placeholder="com.laundry.brandname"
-                                onChange={(e) => setPipeline({ ...pipeline, bundleId: e.target.value })}
-                            />
-                        </>
-                    )}
-
-                    <label style={styles.label}>GitHub PAT (Secret)</label>
+                    <label style={styles.label}>GitHub PAT (Token)</label>
                     <input
                         type="password"
                         style={styles.input}
@@ -216,12 +233,35 @@ export default function App() {
                         onChange={(e) => setPipeline({ ...pipeline, pat: e.target.value })}
                     />
 
+                    {(buildOption === 'testflight' || buildOption === 'both') && (
+                        <>
+                            <div style={styles.divider}></div>
+                            <label style={styles.label}>📱 iOS Configuration (TestFlight)</label>
+
+                            <label style={styles.label}>App Name</label>
+                            <input
+                                style={styles.input}
+                                value={appTheme.appName}
+                                onChange={(e) => setAppTheme({ ...appTheme, appName: e.target.value })}
+                                placeholder="My App Name"
+                            />
+
+                            <label style={styles.label}>Bundle ID</label>
+                            <input
+                                style={styles.input}
+                                value={pipeline.bundleId}
+                                onChange={(e) => setPipeline({ ...pipeline, bundleId: e.target.value })}
+                                placeholder="com.company.appname"
+                            />
+                        </>
+                    )}
+
                     <button
                         style={isBuilding ? styles.disabledButton : styles.triggerButton}
                         onClick={handleTriggerPipeline}
                         disabled={isBuilding}
                     >
-                        {isBuilding ? 'Triggering Build...' : `Build & Deploy ${platform === 'ios' ? '📱 iOS' : platform === 'android' ? '🤖 Android' : '⚡ Both'}`}
+                        {isBuilding ? '⏳ Building...' : `🚀 ${buildOption === 'testflight' ? 'Build to TestFlight' : buildOption === 'apk' ? 'Build APK' : 'Build Both'}`}
                     </button>
                 </div>
             </div>
@@ -251,9 +291,10 @@ const styles = {
     input: { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' },
     colorPicker: { width: '100%', height: '40px', padding: '0', border: 'none', cursor: 'pointer' },
     saveButton: { marginTop: '20px', width: '100%', padding: '12px', backgroundColor: '#4b5563', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
-    triggerButton: { marginTop: '20px', width: '100%', padding: '12px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
-    disabledButton: { marginTop: '20px', width: '100%', padding: '12px', backgroundColor: '#93c5fd', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'not-allowed', fontWeight: 'bold' },
-    platformButtons: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '8px', marginBottom: '16px' },
-    platformButton: { padding: '10px', borderRadius: '6px', border: '2px solid transparent', cursor: 'pointer', fontWeight: '600', fontSize: '13px', transition: 'all 0.2s' },
+    triggerButton: { marginTop: '20px', width: '100%', padding: '14px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' },
+    disabledButton: { marginTop: '20px', width: '100%', padding: '14px', backgroundColor: '#93c5fd', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'not-allowed', fontWeight: 'bold', fontSize: '16px' },
+    buildOptions: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '12px', marginBottom: '16px' },
+    buildOptionButton: { padding: '16px 12px', borderRadius: '8px', border: '2px solid', cursor: 'pointer', fontWeight: '600', transition: 'all 0.2s', textAlign: 'center' },
+    divider: { height: '1px', backgroundColor: '#e5e7eb', margin: '20px 0' },
     terminal: { backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '12px', fontFamily: 'monospace', fontSize: '13px', minHeight: '150px' }
 };
