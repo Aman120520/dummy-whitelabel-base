@@ -43,17 +43,13 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Load environment variables
-        run: |
-          cat .env >> $GITHUB_ENV
-
       - name: Setup iOS Credentials
         run: node scripts/create-credentials-file.js
         env:
-          APPLE_TEAM_ID: ${{ env.APPLE_TEAM_ID }}
-          APP_STORE_CONNECT_KEY_ID: ${{ env.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ env.APP_STORE_CONNECT_ISSUER_ID }}
-          APPLE_APP_STORE_CONNECT_PRIVATE_KEY_PATH: ${{ env.APPLE_APP_STORE_CONNECT_PRIVATE_KEY_PATH }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_P8_BASE64: ${{ secrets.APP_STORE_CONNECT_P8_BASE64 }}
 
       - name: Verify credentials file
         run: |
