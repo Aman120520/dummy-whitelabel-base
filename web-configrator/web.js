@@ -19,6 +19,7 @@ export default function App() {
 
     const [logs, setLogs] = useState([]);
     const [isBuilding, setIsBuilding] = useState(false);
+    const [platform, setPlatform] = useState('ios'); // 'ios', 'android', or 'both'
 
     const addLog = (message) => {
         setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${message}`]);
@@ -46,10 +47,22 @@ export default function App() {
         setLogs([]); // Clear old logs
         addLog("Preparing webhook payload...");
 
-        const githubApiUrl = `https://api.github.com/repos/${pipeline.owner}/${pipeline.repo}/actions/workflows/build-and-submit.yml/dispatches`;
+        const githubApiUrl = `https://api.github.com/repos/${pipeline.owner}/${pipeline.repo}/actions/workflows/build-all-platforms.yml/dispatches`;
 
         try {
             addLog(`Sending request to ${pipeline.owner}/${pipeline.repo}...`);
+            addLog(`Platform: ${platform.toUpperCase()}`);
+
+            const inputs = {
+                platform: platform, // 'ios', 'android', or 'both'
+                clientId: pipeline.clientId,
+            };
+
+            // Only add iOS-specific inputs if building iOS
+            if (platform === 'ios' || platform === 'both') {
+                inputs.appName = appTheme.appName;
+                inputs.bundleId = pipeline.bundleId.toLowerCase();
+            }
 
             const response = await fetch(githubApiUrl, {
                 method: 'POST',
@@ -61,17 +74,19 @@ export default function App() {
                 },
                 body: JSON.stringify({
                     ref: 'main', // The branch to run the workflow on
-                    inputs: {
-                        clientId: pipeline.clientId,
-                        appName: appTheme.appName,
-                        bundleId: pipeline.bundleId.toLowerCase() // Force lowercase for safety
-                    },
+                    inputs: inputs,
                 }),
             });
 
             if (response.ok) {
                 addLog("✅ Webhook sent successfully!");
-                addLog("🎉 Build triggered! EAS is building the iOS app and will push it directly to TestFlight in ~15 minutes.");
+                if (platform === 'ios') {
+                    addLog("🎉 Build triggered! EAS is building the iOS app and will push it directly to TestFlight in ~15-20 minutes.");
+                } else if (platform === 'android') {
+                    addLog("🎉 Build triggered! Building Android APK in ~10-15 minutes.");
+                } else {
+                    addLog("🎉 Build triggered! Building both iOS and Android in parallel. iOS to TestFlight in ~15-20 minutes, APK in ~10-15 minutes.");
+                }
             } else {
                 const errorData = await response.json();
                 addLog(`❌ Error ${response.status}: ${JSON.stringify(errorData.message)}`);
@@ -115,8 +130,42 @@ export default function App() {
 
                 {/* --- RIGHT COLUMN: GitHub Pipeline --- */}
                 <div style={styles.card}>
-                    <h2>2. Pipeline Connection</h2>
-                    <p style={styles.subText}>Trigger a new iOS TestFlight build via EAS.</p>
+                    <h2>2. Build & Deploy</h2>
+                    <p style={styles.subText}>Trigger builds for iOS (TestFlight) and/or Android (APK).</p>
+
+                    <label style={styles.label}>Select Platform</label>
+                    <div style={styles.platformButtons}>
+                        <button
+                            style={{
+                                ...styles.platformButton,
+                                backgroundColor: platform === 'ios' ? '#2563eb' : '#e5e7eb',
+                                color: platform === 'ios' ? '#fff' : '#374151',
+                            }}
+                            onClick={() => setPlatform('ios')}
+                        >
+                            📱 iOS
+                        </button>
+                        <button
+                            style={{
+                                ...styles.platformButton,
+                                backgroundColor: platform === 'android' ? '#2563eb' : '#e5e7eb',
+                                color: platform === 'android' ? '#fff' : '#374151',
+                            }}
+                            onClick={() => setPlatform('android')}
+                        >
+                            🤖 Android
+                        </button>
+                        <button
+                            style={{
+                                ...styles.platformButton,
+                                backgroundColor: platform === 'both' ? '#2563eb' : '#e5e7eb',
+                                color: platform === 'both' ? '#fff' : '#374151',
+                            }}
+                            onClick={() => setPlatform('both')}
+                        >
+                            ⚡ Both
+                        </button>
+                    </div>
 
                     <label style={styles.label}>Target Repo Owner</label>
                     <input
@@ -139,13 +188,24 @@ export default function App() {
                         onChange={(e) => setPipeline({ ...pipeline, clientId: e.target.value })}
                     />
 
-                    <label style={styles.label}>iOS Bundle ID</label>
-                    <input
-                        style={styles.input}
-                        value={pipeline.bundleId}
-                        placeholder="com.laundry.brandname"
-                        onChange={(e) => setPipeline({ ...pipeline, bundleId: e.target.value })}
-                    />
+                    {(platform === 'ios' || platform === 'both') && (
+                        <>
+                            <label style={styles.label}>App Name (iOS)</label>
+                            <input
+                                style={styles.input}
+                                value={appTheme.appName}
+                                onChange={(e) => setAppTheme({ ...appTheme, appName: e.target.value })}
+                            />
+
+                            <label style={styles.label}>iOS Bundle ID</label>
+                            <input
+                                style={styles.input}
+                                value={pipeline.bundleId}
+                                placeholder="com.laundry.brandname"
+                                onChange={(e) => setPipeline({ ...pipeline, bundleId: e.target.value })}
+                            />
+                        </>
+                    )}
 
                     <label style={styles.label}>GitHub PAT (Secret)</label>
                     <input
@@ -161,7 +221,7 @@ export default function App() {
                         onClick={handleTriggerPipeline}
                         disabled={isBuilding}
                     >
-                        {isBuilding ? 'Triggering Build...' : 'Push to TestFlight (iOS)'}
+                        {isBuilding ? 'Triggering Build...' : `Build & Deploy ${platform === 'ios' ? '📱 iOS' : platform === 'android' ? '🤖 Android' : '⚡ Both'}`}
                     </button>
                 </div>
             </div>
@@ -193,5 +253,7 @@ const styles = {
     saveButton: { marginTop: '20px', width: '100%', padding: '12px', backgroundColor: '#4b5563', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
     triggerButton: { marginTop: '20px', width: '100%', padding: '12px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
     disabledButton: { marginTop: '20px', width: '100%', padding: '12px', backgroundColor: '#93c5fd', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'not-allowed', fontWeight: 'bold' },
+    platformButtons: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '8px', marginBottom: '16px' },
+    platformButton: { padding: '10px', borderRadius: '6px', border: '2px solid transparent', cursor: 'pointer', fontWeight: '600', fontSize: '13px', transition: 'all 0.2s' },
     terminal: { backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '12px', fontFamily: 'monospace', fontSize: '13px', minHeight: '150px' }
 };
