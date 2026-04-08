@@ -1,0 +1,40 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and submit to TestFlight"
+  lane :build_and_submit do |options|
+    app_name = options[:app_name] || "TestApp"
+    bundle_id = options[:bundle_id]
+    apple_team_id = options[:apple_team_id]
+
+    # Sync certificates using Match
+    match(
+      type: "appstore",
+      app_identifier: bundle_id,
+      git_url: ENV["FASTLANE_MATCH_REPO"],
+      git_branch: "main",
+      username: ENV["FASTLANE_USER"],
+      team_id: apple_team_id,
+      readonly: true,
+      skip_confirmation: true
+    )
+
+    # Build the app
+    build_app(
+      workspace: "ios/#{app_name}.xcworkspace",
+      scheme: app_name,
+      configuration: "Release",
+      sdk: "iphoneos",
+      derived_data_path: "build",
+      destination: "generic/platform=iOS",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          bundle_id => "match AppStore #{bundle_id}"
+        }
+      },
+      output_directory: "build",
+      output_name: "#{app_name}.ipa"
+    )
+  end
+end

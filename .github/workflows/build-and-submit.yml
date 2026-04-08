@@ -38,6 +38,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Initialize EAS project
+        run: eas init --id 952733e3-51a5-40b4-8554-eaac3a5a6390 --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
       - name: Configure white-label app
         run: node scripts/configure-white-label.js
         env:

@@ -1,0 +1,80 @@
+name: Build and Submit to TestFlight (Fastlane Match)
+
+on:
+  workflow_dispatch:
+    inputs:
+      appName:
+        description: 'App Name'
+        required: true
+        type: string
+      bundleId:
+        description: 'iOS Bundle ID (e.g., com.company.appname)'
+        required: true
+        type: string
+      clientId:
+        description: 'Client/Organization ID'
+        required: true
+        type: string
+
+jobs:
+  build_and_submit:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup Fastlane
+        run: |
+          gem install fastlane -NV
+          cd ios && fastlane update_fastlane
+
+      - name: Checkout Match repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.FASTLANE_MATCH_REPO }}
+          token: ${{ secrets.MATCH_GITHUB_TOKEN }}
+          path: match-repo
+
+      - name: Configure white-label app
+        run: node scripts/configure-white-label.js
+        env:
+          APP_NAME: ${{ github.event.inputs.appName }}
+          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Build and submit with Fastlane
+        run: |
+          cd ios
+          fastlane build_and_submit \
+            app_name:"${{ github.event.inputs.appName }}" \
+            bundle_id:"${{ github.event.inputs.bundleId }}" \
+            apple_team_id:"${{ secrets.APPLE_TEAM_ID }}"
+        env:
+          FASTLANE_USER: ${{ secrets.FASTLANE_USER }}
+          FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
+          FASTLANE_MATCH_REPO: ${{ secrets.FASTLANE_MATCH_REPO }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+
+      - name: Success
+        if: success()
+        run: |
+          echo "✅ Build and TestFlight submission successful!"
+          echo "App: ${{ github.event.inputs.appName }}"
+          echo "Bundle ID: ${{ github.event.inputs.bundleId }}"
+          echo "Check TestFlight in ~15-20 minutes"

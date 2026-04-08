@@ -1,143 +1,87 @@
-# GitHub Actions Setup Guide
+# GitHub Actions + EAS Build Setup (Simple)
 
-This guide will help you configure GitHub Secrets and deploy your iOS app directly to TestFlight from the web configurator.
+This is the **simpler** approach: use GitHub Actions to run EAS builds without Fastlane.
 
-## Step 1: Add GitHub Secrets
+## How It Works
 
-Go to your GitHub repository → **Settings → Secrets and variables → Actions → New repository secret**
+1. You upload Apple certificates to GitHub Secrets
+2. GitHub Actions creates credentials.json from those secrets
+3. EAS uses the credentials to build and submit to TestFlight
 
-Add the following secrets:
+---
 
-### Required Secrets
+## Step 1: Get Your Apple Credentials
 
-1. **EXPO_TOKEN**
-   - Value: `Bxrhap33MRN5COvONG8PodpjEaUIIHqA4UZiHmxg`
+You need 4 pieces of information:
 
-2. **APPLE_TEAM_ID**
+1. **Apple Team ID**
    - Value: `2H9MCN975Q`
 
-3. **APP_STORE_CONNECT_KEY_ID**
+2. **Apple App Store Connect Key ID**
    - Value: `2MFD4KXKR7`
 
-4. **APP_STORE_CONNECT_ISSUER_ID**
+3. **Apple App Store Connect Issuer ID**
    - Value: `69a6de87-46aa-47e3-e053-5b8c7c11a4d1`
 
-5. **APP_STORE_CONNECT_P8_BASE64**
-   - Value: `LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR1RBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJIa3dkd0lCQVFRZ0ZHWGcrc09GWGxwcllEWGEKRTdiNzY0eWlJSVVuTlJmcWF5SnJETzZuVTRDZ0NnWUlLb1pJemowREFRZWhSQU5DQUFSZmwzZzl5NHRSVDJUdwpUbkUzS0lkTTc4eVZ1RkNGSnAzMjZIdkEzTTlsTEhhZjR3Vlc3Qy8rNGZ2Q3M0WmpCbHJWYmxmQlk1amk4RWNZCk9sbWhnQTBLCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0=`
+4. **Apple App Store Connect Private Key** (the .p8 file)
+   - File: `AuthKey_2MFD4KXKR7.p8`
 
-6. **GITHUB_TOKEN** (for API access)
-   - Create a Personal Access Token at https://github.com/settings/tokens
-   - Required scopes: `repo` (full control of private repositories)
-   - Value: Your generated token
+---
 
-## Step 2: Configure Environment Variables (for local API server)
+## Step 2: Add GitHub Secrets
 
-If running locally, create a `.env` file in the project root:
+Go to: https://github.com/YOUR_USERNAME/dummy-whitelabel-base/settings/secrets/actions
 
-```bash
-GITHUB_TOKEN=your_github_token_here
-GITHUB_REPO_OWNER=your_github_username
-GITHUB_REPO_NAME=dummy-whitelabel-base
-```
+Add these 5 secrets:
 
-## Step 3: How It Works
+1. **EXPO_TOKEN** = Your Expo token
+2. **APPLE_TEAM_ID** = `2H9MCN975Q`
+3. **APPLE_APP_STORE_CONNECT_KEY_ID** = `2MFD4KXKR7`
+4. **APPLE_APP_STORE_CONNECT_ISSUER_ID** = `69a6de87-46aa-47e3-e053-5b8c7c11a4d1`
+5. **APPLE_APP_STORE_CONNECT_PRIVATE_KEY** = Contents of AuthKey_2MFD4KXKR7.p8
 
-1. **User fills the form** in the web configurator with:
-   - App Name (e.g., "Tayyar24 Laundry")
-   - Bundle ID (e.g., "com.laundry.tayyar24")
-   - Optional: Primary & Secondary Colors
+---
 
-2. **User clicks "Push to TestFlight"**
+## Step 3: Run a Build
 
-3. **Frontend sends request** to `/api/trigger-workflow` with the app details
+1. Go to GitHub Actions
+2. Click "Build and Submit to TestFlight"
+3. Click "Run workflow"
+4. Fill in your app details
+5. Watch the build
 
-4. **API endpoint** dispatches a GitHub Actions workflow with:
-   - `appName`
-   - `bundleId`
-   - `clientId`
-   - `primaryColor` (optional)
-   - `secondaryColor` (optional)
+---
 
-5. **GitHub Actions runs the build**:
-   - Updates `app.json` with white-label config
-   - Runs `eas build --platform ios --profile production`
-   - Submits to TestFlight with `eas submit`
+## Quick Workflow
 
-6. **Build appears in TestFlight** in ~15-20 minutes
+The GitHub Actions automatically:
+- Checks out code
+- Sets up Node.js & EAS
+- Installs dependencies
+- Configures your white-label app
+- Creates credentials from GitHub secrets
+- Builds with EAS
+- Submits to TestFlight
 
-## API Endpoint Details
-
-### POST `/api/trigger-workflow`
-
-**Request Body:**
-```json
-{
-  "appName": "My App",
-  "bundleId": "com.company.appname",
-  "clientId": "client123",
-  "primaryColor": "#202f66",
-  "secondaryColor": "#f0f4f8"
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "message": "Build workflow triggered successfully.",
-  "repository": "owner/repo",
-  "workflow": "build.yml"
-}
-```
-
-**Error Response (400/500):**
-```json
-{
-  "error": "Missing required fields",
-  "required": ["appName", "bundleId", "clientId"]
-}
-```
-
-## Testing the Setup
-
-1. Start the development server:
-   ```bash
-   npm start
-   ```
-
-2. Open http://localhost:3000 (adjust port as needed)
-
-3. Fill in the configurator form with test data
-
-4. Click "Push to TestFlight (iOS)"
-
-5. Check GitHub Actions → "Generate Fast iOS App" for the build progress
+---
 
 ## Troubleshooting
 
-### "GITHUB_TOKEN not configured"
-- Ensure `GITHUB_TOKEN` is set in GitHub Secrets (Settings → Secrets)
-- If running locally, add to `.env` file and restart the server
+**"iOS credentials are missing"**
+→ Check all 5 secrets are added to GitHub
 
-### "Failed to trigger workflow"
-- Check if the GitHub token has `repo` scope
-- Verify `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME` are correct
-- Check GitHub Actions logs for detailed errors
+**"EXPO_TOKEN not found"**
+→ Add EXPO_TOKEN secret
 
-### Build fails in GitHub Actions
-- Check the workflow logs in GitHub Actions tab
-- Verify EAS credentials are correct
-- Ensure App Store Connect P8 key is valid and not expired
-- Check TestFlight settings in App Store Connect
+**"Build failed: Invalid credentials"**
+→ Verify Apple credentials are correct
 
-### "Invalid Bundle ID"
-- Must be in format: `com.company.appname`
-- Only alphanumeric characters and dots allowed
-- Must have at least 2 parts (e.g., `com.app` is minimum)
+---
 
-## References
+## Fastlane Match Alternative
 
-- [EAS Build Documentation](https://docs.expo.dev/build/introduction/)
-- [EAS Submit Documentation](https://docs.expo.dev/submit/introduction/)
-- [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [App Store Connect Keys](https://developer.apple.com/docs/appstoreconnectapi/generating_tokens_for_api_requests)
+For enterprise-grade certificate management, see `FASTLANE_MATCH_SETUP.md`
+
+---
+
+Good luck! 🚀
