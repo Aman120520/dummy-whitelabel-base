@@ -4,19 +4,32 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const {
+let {
   APPLE_TEAM_ID,
   APP_STORE_CONNECT_KEY_ID,
   APP_STORE_CONNECT_ISSUER_ID,
   APP_STORE_CONNECT_P8_BASE64,
+  APPLE_APP_STORE_CONNECT_PRIVATE_KEY_PATH,
 } = process.env;
+
+// If P8_BASE64 not provided, try to read from file path
+if (!APP_STORE_CONNECT_P8_BASE64 && APPLE_APP_STORE_CONNECT_PRIVATE_KEY_PATH) {
+  try {
+    const keyContent = fs.readFileSync(APPLE_APP_STORE_CONNECT_PRIVATE_KEY_PATH, 'utf-8');
+    APP_STORE_CONNECT_P8_BASE64 = Buffer.from(keyContent).toString('base64');
+    console.log('✅ Read P8 key from file path');
+  } catch (error) {
+    console.error('❌ Failed to read P8 key file:', error.message);
+    process.exit(1);
+  }
+}
 
 if (!APPLE_TEAM_ID || !APP_STORE_CONNECT_KEY_ID || !APP_STORE_CONNECT_ISSUER_ID || !APP_STORE_CONNECT_P8_BASE64) {
   console.error('❌ Missing required environment variables:');
   console.error('   - APPLE_TEAM_ID');
   console.error('   - APP_STORE_CONNECT_KEY_ID');
   console.error('   - APP_STORE_CONNECT_ISSUER_ID');
-  console.error('   - APP_STORE_CONNECT_P8_BASE64');
+  console.error('   - APP_STORE_CONNECT_P8_BASE64 or APPLE_APP_STORE_CONNECT_PRIVATE_KEY_PATH');
   process.exit(1);
 }
 
@@ -36,6 +49,7 @@ try {
   const credentials = {
     ios: {
       [APPLE_TEAM_ID]: {
+        appleTeamId: APPLE_TEAM_ID,
         appleAppStoreConnectPrivateKeyPath: p8Path,
         appleAppStoreConnectKeyId: APP_STORE_CONNECT_KEY_ID,
         appleAppStoreConnectIssuerId: APP_STORE_CONNECT_ISSUER_ID,

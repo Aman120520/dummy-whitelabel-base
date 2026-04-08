@@ -25,6 +25,15 @@ console.log(`✅ Updated app.json: ${APP_NAME} (${BUNDLE_ID})`);
 
 // 2. Update eas.json for submission
 const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
+
+// Preserve build config (credentialsSource, distribution, etc)
+easJson.build = easJson.build || {};
+easJson.build.production = easJson.build.production || {};
+easJson.build.production.ios = easJson.build.production.ios || {};
+easJson.build.production.ios.credentialsSource = easJson.build.production.ios.credentialsSource || 'local';
+easJson.build.production.ios.distribution = easJson.build.production.ios.distribution || 'store';
+
+// Update submit config
 easJson.submit = easJson.submit || {};
 easJson.submit.production = easJson.submit.production || {};
 easJson.submit.production.ios = easJson.submit.production.ios || {};
