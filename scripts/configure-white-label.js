@@ -7,9 +7,15 @@ const IOS_BUNDLE_ID = process.env.IOS_BUNDLE_ID;
 const ANDROID_PACKAGE = process.env.ANDROID_PACKAGE;
 const APPLE_TEAM_ID = process.env.APPLE_TEAM_ID;
 const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID;
+const CLIENT_ID = process.env.CLIENT_ID;
 
 if (!APP_NAME) {
   console.error('❌ Missing required env var: APP_NAME');
+  process.exit(1);
+}
+
+if (!CLIENT_ID) {
+  console.error('❌ Missing required env var: CLIENT_ID');
   process.exit(1);
 }
 
@@ -78,5 +84,17 @@ if (APPLE_TEAM_ID) {
 
 fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
 console.log(`✅ Updated eas.json with submission config`);
+
+// 3. Create client configuration file that the app will use
+const clientConfig = {
+  clientId: CLIENT_ID,
+  appName: APP_NAME,
+  iosBundle: IOS_BUNDLE_ID || null,
+  androidPackage: ANDROID_PACKAGE || null,
+};
+
+const configPath = 'app/config.json';
+fs.writeFileSync(configPath, JSON.stringify(clientConfig, null, 2));
+console.log(`✅ Created app/config.json with client ID: ${CLIENT_ID}`);
 
 console.log('\n✅ White-label configuration complete!\n');

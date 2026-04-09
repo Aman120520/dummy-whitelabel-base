@@ -51,6 +51,7 @@ jobs:
         env:
           APP_NAME: ${{ github.event.inputs.appName }}
           IOS_BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+          CLIENT_ID: ${{ github.event.inputs.clientId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
@@ -119,6 +120,7 @@ jobs:
         env:
           APP_NAME: ${{ github.event.inputs.appName }}
           ANDROID_PACKAGE: ${{ github.event.inputs.androidPackage }}
+          CLIENT_ID: ${{ github.event.inputs.clientId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Build Android APK & AAB
