@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "dummy-whitelabel-base",
+    "name": "Test Automation",
     "slug": "dummy-whitelabel-base",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wesence.dummywhitelabelbase",
+      "bundleIdentifier": "com.test.automation",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
