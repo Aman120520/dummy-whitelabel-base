@@ -57,7 +57,7 @@ jobs:
           echo ""
           cd android
           export NODE_OPTIONS="--max-old-space-size=4096"
-          export _JAVA_OPTIONS="-Xmx4096m"
+          export _JAVA_OPTIONS="-Xmx4096m -XX:MaxMetaspaceSize=1024m"
           echo "Building APK..."
           ./gradlew assembleRelease -x lint --no-daemon
           echo "Building AAB..."
