@@ -50,7 +50,7 @@ jobs:
         run: node scripts/configure-white-label.js
         env:
           APP_NAME: ${{ github.event.inputs.appName }}
-          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+          IOS_BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
@@ -118,13 +118,13 @@ jobs:
         run: node scripts/configure-white-label.js
         env:
           APP_NAME: ${{ github.event.inputs.appName }}
-          BUNDLE_ID: ${{ github.event.inputs.androidPackage }}
+          ANDROID_PACKAGE: ${{ github.event.inputs.androidPackage }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-      - name: Build Android APK
+      - name: Build Android APK & AAB
         run: |
           echo "=========================================="
-          echo "Starting Android APK build"
+          echo "Building Android APK & AAB"
           echo "=========================================="
           echo "App: ${{ github.event.inputs.appName }}"
           echo "Package: ${{ github.event.inputs.androidPackage }}"
@@ -132,13 +132,23 @@ jobs:
           cd android
           export NODE_OPTIONS="--max-old-space-size=4096"
           export _JAVA_OPTIONS="-Xmx4096m"
+          echo "Building APK..."
           ./gradlew assembleRelease -x lint --no-daemon
+          echo "Building AAB..."
+          ./gradlew bundleRelease -x lint --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.appName }}-apk-release
+          name: ${{ github.event.inputs.appName }}-apk
           path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.appName }}-aab
+          path: android/app/build/outputs/bundle/release/*.aab
           retention-days: 30
 
       - name: Android Success

@@ -3,27 +3,42 @@
 const fs = require('fs');
 
 const APP_NAME = process.env.APP_NAME;
-const BUNDLE_ID = process.env.BUNDLE_ID;
+const IOS_BUNDLE_ID = process.env.IOS_BUNDLE_ID;
+const ANDROID_PACKAGE = process.env.ANDROID_PACKAGE;
 const APPLE_TEAM_ID = process.env.APPLE_TEAM_ID;
 const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID;
 
-if (!APP_NAME || !BUNDLE_ID || !APPLE_TEAM_ID) {
-  console.error('❌ Missing env vars: APP_NAME, BUNDLE_ID, APPLE_TEAM_ID');
+if (!APP_NAME) {
+  console.error('❌ Missing required env var: APP_NAME');
   process.exit(1);
-}
-
-if (!EAS_PROJECT_ID) {
-  console.warn('⚠️  Warning: EAS_PROJECT_ID not provided, using existing project ID');
 }
 
 console.log('🔧 Configuring white-label app...');
 
 // 1. Update app.json
 const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+
+// ONLY update app name, keep slug unchanged
 appJson.expo.name = APP_NAME;
-appJson.expo.ios = appJson.expo.ios || {};
-appJson.expo.ios.bundleIdentifier = BUNDLE_ID;
-appJson.expo.ios.appleTeamId = APPLE_TEAM_ID;
+
+// Update iOS bundle identifier if provided
+if (IOS_BUNDLE_ID) {
+  appJson.expo.ios = appJson.expo.ios || {};
+  appJson.expo.ios.bundleIdentifier = IOS_BUNDLE_ID;
+  console.log(`✅ Updated iOS Bundle ID: ${IOS_BUNDLE_ID}`);
+}
+
+// Update Android package if provided
+if (ANDROID_PACKAGE) {
+  appJson.expo.android = appJson.expo.android || {};
+  appJson.expo.android.package = ANDROID_PACKAGE;
+  console.log(`✅ Updated Android Package: ${ANDROID_PACKAGE}`);
+}
+
+// Add Apple Team ID if provided
+if (APPLE_TEAM_ID) {
+  appJson.expo.ios.appleTeamId = APPLE_TEAM_ID;
+}
 
 // Update EAS Project ID if provided
 if (EAS_PROJECT_ID) {
@@ -39,7 +54,7 @@ if (EAS_PROJECT_ID) {
 }
 
 fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
-console.log(`✅ Updated app.json: ${APP_NAME} (${BUNDLE_ID})`);
+console.log(`✅ Updated app.json: ${APP_NAME}`);
 
 // 2. Update eas.json for submission
 const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
@@ -56,8 +71,10 @@ easJson.submit = easJson.submit || {};
 easJson.submit.production = easJson.submit.production || {};
 easJson.submit.production.ios = easJson.submit.production.ios || {};
 
-// Only update appleTeamId, preserve all other submit config (ascAppId, etc)
-easJson.submit.production.ios.appleTeamId = APPLE_TEAM_ID;
+// Only update appleTeamId if provided, preserve all other submit config (ascAppId, etc)
+if (APPLE_TEAM_ID) {
+  easJson.submit.production.ios.appleTeamId = APPLE_TEAM_ID;
+}
 
 fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
 console.log(`✅ Updated eas.json with submission config`);

@@ -46,7 +46,7 @@ jobs:
         run: node scripts/configure-white-label.js
         env:
           APP_NAME: ${{ github.event.inputs.appName }}
-          BUNDLE_ID: ${{ github.event.inputs.bundleId }}
+          IOS_BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
