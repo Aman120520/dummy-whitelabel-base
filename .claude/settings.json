@@ -3,7 +3,14 @@
     "allow": [
       "Bash(git commit -m 'Remove prebuild commands from iOS and Android workflows:*)",
       "Bash(git commit -m 'Add comprehensive white-label client setup guide:*)",
-      "Bash(git commit -m 'Implement fully automated white-label app creation system:*)"
+      "Bash(git commit -m 'Implement fully automated white-label app creation system:*)",
+      "Bash(git commit -m 'Simplify workflow: iOS to TestFlight only, Android APK download only:*)",
+      "Read(//tmp/**)",
+      "Bash(git checkout:*)",
+      "Bash(git commit -m 'Organize workflows: Separate iOS TestFlight, Android APK, and Both builds:*)",
+      "Bash(git commit -m 'Update web configurator to use new workflow files:*)",
+      "Bash(git commit -m 'Update white-label configuration and add APK/AAB support:*)",
+      "mcp__code-review-graph__build_or_update_graph_tool"
     ]
   }
 }
