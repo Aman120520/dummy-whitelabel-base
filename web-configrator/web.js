@@ -27,13 +27,13 @@ export default function App() {
         setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${message}`]);
     };
 
-    // --- Map build options to platform values ---
-    const getBuildPlatform = () => {
+    // --- Map build options to workflow file ---
+    const getWorkflowFile = () => {
         switch (buildOption) {
-            case 'testflight': return 'ios';
-            case 'apk': return 'android';
-            case 'both': return 'both';
-            default: return 'ios';
+            case 'testflight': return 'build-ios-testflight.yml';
+            case 'apk': return 'build-android-apk.yml';
+            case 'both': return 'build-ios-android-both.yml';
+            default: return 'build-ios-testflight.yml';
         }
     };
 
@@ -66,33 +66,43 @@ export default function App() {
         setLogs([]);
         addLog("Preparing build request...");
 
-        const githubApiUrl = `https://api.github.com/repos/${pipeline.owner}/${pipeline.repo}/actions/workflows/build-all-platforms.yml/dispatches`;
+        const workflowFile = getWorkflowFile();
+        const githubApiUrl = `https://api.github.com/repos/${pipeline.owner}/${pipeline.repo}/actions/workflows/${workflowFile}/dispatches`;
 
         try {
             addLog(`Connecting to GitHub: ${pipeline.owner}/${pipeline.repo}`);
+            addLog(`Workflow: ${workflowFile}`);
             addLog(`Build Type: ${buildOption.toUpperCase()}`);
             addLog(`Client ID: ${pipeline.clientId}`);
 
-            const platform = getBuildPlatform();
             const inputs = {
-                platform,
                 clientId: pipeline.clientId,
                 appName: appTheme.appName,
-                easProjectId: pipeline.easProjectId
             };
 
-            if (platform === 'ios' || platform === 'both') {
+            // Add platform-specific inputs based on build option
+            if (buildOption === 'testflight' || buildOption === 'both') {
+                inputs.easProjectId = pipeline.easProjectId;
+            }
+
+            if (buildOption === 'testflight') {
                 inputs.bundleId = pipeline.bundleId.toLowerCase();
                 addLog(`iOS Bundle ID: ${pipeline.bundleId}`);
             }
 
-            if (platform === 'android' || platform === 'both') {
+            if (buildOption === 'apk') {
                 inputs.androidPackage = pipeline.androidPackage.toLowerCase();
                 addLog(`Android Package: ${pipeline.androidPackage}`);
             }
 
+            if (buildOption === 'both') {
+                inputs.bundleId = pipeline.bundleId.toLowerCase();
+                inputs.androidPackage = pipeline.androidPackage.toLowerCase();
+                addLog(`iOS Bundle ID: ${pipeline.bundleId}`);
+                addLog(`Android Package: ${pipeline.androidPackage}`);
+            }
+
             addLog(`App Name: ${appTheme.appName}`);
-            addLog(`EAS Project ID: ${pipeline.easProjectId}`);
 
             addLog("Sending workflow dispatch request...");
 
@@ -245,14 +255,18 @@ export default function App() {
                         onChange={(e) => setPipeline({ ...pipeline, clientId: e.target.value })}
                     />
 
-                    <label style={styles.label}>EAS Project ID</label>
-                    <input
-                        style={styles.input}
-                        value={pipeline.easProjectId}
-                        onChange={(e) => setPipeline({ ...pipeline, easProjectId: e.target.value })}
-                        placeholder="952733e3-51a5-40b4-8554-eaac3a5a6390"
-                    />
-                    <p style={{ ...styles.subText, marginTop: '4px' }}>Use client's own EAS project for separate TestFlight app</p>
+                    {(buildOption === 'testflight' || buildOption === 'both') && (
+                        <>
+                            <label style={styles.label}>EAS Project ID</label>
+                            <input
+                                style={styles.input}
+                                value={pipeline.easProjectId}
+                                onChange={(e) => setPipeline({ ...pipeline, easProjectId: e.target.value })}
+                                placeholder="952733e3-51a5-40b4-8554-eaac3a5a6390"
+                            />
+                            <p style={{ ...styles.subText, marginTop: '4px' }}>EAS project for TestFlight submission</p>
+                        </>
+                    )}
 
                     <label style={styles.label}>GitHub PAT (Token)</label>
                     <input
