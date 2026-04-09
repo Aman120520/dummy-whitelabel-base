@@ -1,4 +1,4 @@
-name: Build and Submit to TestFlight
+name: Build iOS - TestFlight
 
 on:
   workflow_dispatch:
@@ -15,9 +15,13 @@ on:
         description: 'Client/Organization ID'
         required: true
         type: string
+      easProjectId:
+        description: 'EAS Project ID for this client'
+        required: false
+        type: string
 
 jobs:
-  build_and_submit:
+  build_ios:
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -44,6 +48,7 @@ jobs:
           APP_NAME: ${{ github.event.inputs.appName }}
           BUNDLE_ID: ${{ github.event.inputs.bundleId }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
       - name: Verify EXPO Token
         run: |
@@ -57,25 +62,14 @@ jobs:
           echo "Current eas.json configuration:"
           cat eas.json | jq '.'
 
-      - name: Check Credentials Status
-        run: |
-          echo "Checking EAS credentials availability..."
-          echo "Project: dummy-whitelabel-base"
-          echo "Owner: wesencedev"
-          # Try to get credentials info (will fail gracefully in non-interactive)
-          eas credentials --non-interactive || echo "Note: eas credentials requires interactive mode, but stored credentials will be used"
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
       - name: Build iOS app with EAS
         run: |
           echo "=========================================="
-          echo "Starting EAS build with production profile"
+          echo "Starting EAS iOS build"
           echo "=========================================="
-          echo "Build Profile: production"
-          echo "Platform: iOS"
-          echo "Wait for build: true"
-          echo "Using remote credentials: true"
+          echo "App: ${{ github.event.inputs.appName }}"
+          echo "Bundle ID: ${{ github.event.inputs.bundleId }}"
+          echo "Client ID: ${{ github.event.inputs.clientId }}"
           echo ""
           eas build --platform ios --profile production --wait
         env:
@@ -83,7 +77,7 @@ jobs:
 
       - name: Submit to TestFlight
         run: |
-          echo "Starting TestFlight submission..."
+          echo "Submitting to TestFlight..."
           eas submit --platform ios --profile production --latest
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -91,7 +85,12 @@ jobs:
       - name: Success
         if: success()
         run: |
-          echo "✅ Build and TestFlight submission successful!"
-          echo "App: ${{ github.event.inputs.appName }}"
-          echo "Bundle ID: ${{ github.event.inputs.bundleId }}"
-          echo "Check TestFlight in ~15-20 minutes"
+          echo "✅ iOS Build and TestFlight submission successful!"
+          echo ""
+          echo "App Details:"
+          echo "  Name: ${{ github.event.inputs.appName }}"
+          echo "  Bundle ID: ${{ github.event.inputs.bundleId }}"
+          echo "  Client ID: ${{ github.event.inputs.clientId }}"
+          echo ""
+          echo "📱 Check TestFlight in ~15-20 minutes"
+          echo "📊 View build: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

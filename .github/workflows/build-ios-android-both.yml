@@ -1,27 +1,19 @@
-name: Build iOS & Android
+name: Build iOS & Android - Both
 
 on:
   workflow_dispatch:
     inputs:
-      platform:
-        description: 'Platform to build'
-        required: true
-        type: choice
-        options:
-          - ios
-          - android
-          - both
       appName:
-        description: 'App Name (iOS & Android)'
-        required: false
+        description: 'App Name'
+        required: true
         type: string
       bundleId:
         description: 'iOS Bundle ID (e.g., com.company.appname)'
-        required: false
+        required: true
         type: string
       androidPackage:
         description: 'Android Package ID (e.g., com.company.appname)'
-        required: false
+        required: true
         type: string
       clientId:
         description: 'Client/Organization ID'
@@ -34,7 +26,6 @@ on:
 
 jobs:
   build_ios:
-    if: ${{ github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' }}
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -63,14 +54,6 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
-      - name: Create iOS app on App Store Connect
-        if: ${{ github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' }}
-        run: |
-          echo "Creating App Store Connect app..."
-          echo "App: ${{ github.event.inputs.appName }}"
-          echo "Bundle: ${{ github.event.inputs.bundleId }}"
-        continue-on-error: true
-
       - name: Verify EXPO Token
         run: |
           echo "Testing EXPO_TOKEN authentication..."
@@ -86,12 +69,10 @@ jobs:
       - name: Build iOS app with EAS
         run: |
           echo "=========================================="
-          echo "Starting EAS build with production profile"
+          echo "Starting EAS iOS build"
           echo "=========================================="
-          echo "Build Profile: production"
-          echo "Platform: iOS"
-          echo "Wait for build: true"
-          echo "Using remote credentials: true"
+          echo "App: ${{ github.event.inputs.appName }}"
+          echo "Bundle ID: ${{ github.event.inputs.bundleId }}"
           echo ""
           eas build --platform ios --profile production --wait
         env:
@@ -99,7 +80,7 @@ jobs:
 
       - name: Submit to TestFlight
         run: |
-          echo "Starting TestFlight submission..."
+          echo "Submitting to TestFlight..."
           eas submit --platform ios --profile production --latest
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -110,10 +91,8 @@ jobs:
           echo "✅ iOS Build and TestFlight submission successful!"
           echo "App: ${{ github.event.inputs.appName }}"
           echo "Bundle ID: ${{ github.event.inputs.bundleId }}"
-          echo "Check TestFlight in ~15-20 minutes"
 
   build_android:
-    if: ${{ github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -135,19 +114,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Configure white-label app (Android)
+      - name: Configure white-label app
         run: node scripts/configure-white-label.js
         env:
           APP_NAME: ${{ github.event.inputs.appName }}
           BUNDLE_ID: ${{ github.event.inputs.androidPackage }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          EAS_PROJECT_ID: ${{ github.event.inputs.easProjectId }}
 
-      - name: Build APK
+      - name: Build Android APK
         run: |
           echo "=========================================="
-          echo "Building Android APK (Release)"
+          echo "Starting Android APK build"
           echo "=========================================="
+          echo "App: ${{ github.event.inputs.appName }}"
+          echo "Package: ${{ github.event.inputs.androidPackage }}"
+          echo ""
           cd android
           export NODE_OPTIONS="--max-old-space-size=4096"
           export _JAVA_OPTIONS="-Xmx4096m"
@@ -156,7 +137,7 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-app-release-unsigned
+          name: ${{ github.event.inputs.appName }}-apk-release
           path: android/app/build/outputs/apk/release/*.apk
           retention-days: 30
 
@@ -166,10 +147,6 @@ jobs:
           echo "✅ Android APK build successful!"
           echo "App: ${{ github.event.inputs.appName }}"
           echo "Package: ${{ github.event.inputs.androidPackage }}"
-          echo ""
-          echo "📦 APK available in GitHub Actions artifacts"
-          echo "   Download and distribute manually"
-          echo "Client ID: ${{ github.event.inputs.clientId }}"
 
   summary:
     if: always()
@@ -179,12 +156,19 @@ jobs:
       - name: Build Summary
         run: |
           echo "=========================================="
-          echo "Build Pipeline Summary"
+          echo "Build Complete - iOS & Android"
           echo "=========================================="
-          echo "Platform: ${{ github.event.inputs.platform }}"
-          echo "Client ID: ${{ github.event.inputs.clientId }}"
           echo ""
-          echo "iOS Status: ${{ needs.build_ios.result }}"
-          echo "Android Status: ${{ needs.build_android.result }}"
+          echo "Client: ${{ github.event.inputs.clientId }}"
+          echo "App: ${{ github.event.inputs.appName }}"
           echo ""
-          echo "📊 View full logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "📱 iOS Status: ${{ needs.build_ios.result }}"
+          echo "   → Submitted to TestFlight"
+          echo "   → Check in 15-20 minutes"
+          echo ""
+          echo "🤖 Android Status: ${{ needs.build_android.result }}"
+          echo "   → APK available in artifacts"
+          echo "   → Download and distribute"
+          echo ""
+          echo "📊 View full logs:"
+          echo "   ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
