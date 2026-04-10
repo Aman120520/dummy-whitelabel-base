@@ -10,7 +10,15 @@
       "Bash(git commit -m 'Organize workflows: Separate iOS TestFlight, Android APK, and Both builds:*)",
       "Bash(git commit -m 'Update web configurator to use new workflow files:*)",
       "Bash(git commit -m 'Update white-label configuration and add APK/AAB support:*)",
-      "mcp__code-review-graph__build_or_update_graph_tool"
+      "mcp__code-review-graph__build_or_update_graph_tool",
+      "Bash(ls -la /Users/amanvagadiya/Desktop/web-donfig/dummy-whitelabel-base/*.md)",
+      "Bash(grep -v \"^\\\\.$\")",
+      "Bash(grep -v \"^\\\\.\\\\.$\")",
+      "Bash(find . -maxdepth 3 -name \".DS_Store\" -delete)"
+    ],
+    "additionalDirectories": [
+      "/Users/amanvagadiya/Desktop/web-donfig/dummy-whitelabel-base",
+      "/tmp"
     ]
   }
 }
