@@ -16,7 +16,8 @@
       "Bash(grep -v \"^\\\\.\\\\.$\")",
       "Bash(find . -maxdepth 3 -name \".DS_Store\" -delete)",
       "Bash(ls -la *.md)",
-      "Bash(ls -1 *.md)"
+      "Bash(ls -1 *.md)",
+      "Bash(npx expo:*)"
     ],
     "additionalDirectories": [
       "/Users/amanvagadiya/Desktop/web-donfig/dummy-whitelabel-base",

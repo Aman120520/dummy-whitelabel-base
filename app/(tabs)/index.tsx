@@ -9,23 +9,35 @@ import {
   ScrollView,
   RefreshControl
 } from 'react-native';
-import { useAppConfig } from 'expo';
+import Constants from 'expo-constants';
+
+interface ThemeConfig {
+  appName: string;
+  primaryColor: string;
+  secondaryColor: string;
+  textColor: string;
+  subTextColor: string;
+  headerTextColor: string;
+  buttonText: string;
+  buttonTextColor: string;
+  subtitleText: string;
+  logoUrl: string;
+  borderRadius: number;
+}
 
 export default function HomeScreen() {
-  const [theme, setTheme] = useState(null);
+  const [theme, setTheme] = useState<ThemeConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Read embedded client configuration
-  const appConfig = useAppConfig();
-  const clientId = appConfig?.extra?.clientId || "4565";
-  const clientConfig = appConfig?.extra?.clientConfig || {};
+  // Read embedded client configuration from app.config.js
+  const clientId = Constants.expoConfig?.extra?.clientId || "4565";
 
   const fetchAppConfiguration = async (isRefreshing = false) => {
     try {
       if (isRefreshing) setRefreshing(true);
 
-      // Use embedded client ID from app/config.json
+      // Use embedded client ID from app/config.json (passed through app.config.js)
       const apiUrl = `https://configs.quickdrycleaning.com/api/configuration/${clientId}`;
       const response = await fetch(apiUrl);
 
@@ -62,11 +74,11 @@ export default function HomeScreen() {
       });
 
     } catch (error) {
-      console.error("Theme Load Error:", error.message);
+      console.error("Theme Load Error:", error instanceof Error ? error.message : String(error));
 
-      // FALLBACK: Use embedded app config or defaults
+      // FALLBACK: Use app name from config or defaults
       setTheme({
-        appName: clientConfig?.appName || "App (Fallback)",
+        appName: Constants.expoConfig?.name || "App (Fallback)",
         primaryColor: "#202f66",
         secondaryColor: "#f0f4f8",
         textColor: "#0f172a",
