@@ -9,20 +9,24 @@ import {
   ScrollView,
   RefreshControl
 } from 'react-native';
+import { useAppConfig } from 'expo';
 
 export default function HomeScreen() {
   const [theme, setTheme] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Replace this with dynamic ID from your app's login/storage
-  const organizationId = "4565";
+  // Read embedded client configuration
+  const appConfig = useAppConfig();
+  const clientId = appConfig?.extra?.clientId || "4565";
+  const clientConfig = appConfig?.extra?.clientConfig || {};
 
   const fetchAppConfiguration = async (isRefreshing = false) => {
     try {
       if (isRefreshing) setRefreshing(true);
 
-      const apiUrl = `https://configs.quickdrycleaning.com/api/configuration/${organizationId}`;
+      // Use embedded client ID from app/config.json
+      const apiUrl = `https://configs.quickdrycleaning.com/api/configuration/${clientId}`;
       const response = await fetch(apiUrl);
 
       // 1. Check if the server returned a success status (200-299)
@@ -60,9 +64,9 @@ export default function HomeScreen() {
     } catch (error) {
       console.error("Theme Load Error:", error.message);
 
-      // FALLBACK: Load default theme if the API fails
+      // FALLBACK: Use embedded app config or defaults
       setTheme({
-        appName: "Tayyar24 Laundry (Fallback)",
+        appName: clientConfig?.appName || "App (Fallback)",
         primaryColor: "#202f66",
         secondaryColor: "#f0f4f8",
         textColor: "#0f172a",
@@ -70,7 +74,7 @@ export default function HomeScreen() {
         headerTextColor: "#ffffff",
         buttonText: "Schedule Pickup",
         buttonTextColor: "#ffffff",
-        subtitleText: "Could not connect to Configurator. Loading default theme.",
+        subtitleText: "Could not connect to API. Using embedded configuration.",
         logoUrl: "https://raw.githubusercontent.com/expo/expo/main/templates/expo-template-blank/assets/icon.png",
         borderRadius: 24
       });
